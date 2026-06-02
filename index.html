@@ -1,19 +1,542 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>3D Печать</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>3D Печать — Mini App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            padding: 0;
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        /* Анимация загрузки */
+        .loading-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 0%;
+            height: 3px;
+            background: var(--tg-theme-button-color, #007aff);
+            transition: width 0.3s ease;
+            z-index: 1000;
+            border-radius: 0 2px 2px 0;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            padding-bottom: 80px;
+        }
+
+        /* Вкладки */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            padding: 4px;
+            border-radius: 32px;
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 12px;
+            border-radius: 28px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            color: var(--tg-theme-hint-color, #8e8e93);
+        }
+
+        .tab.active {
+            background: var(--tg-theme-button-color, #007aff);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Карточки заказов */
+        .order-card {
+            background: var(--tg-theme-secondary-bg-color, #f9f9f9);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: transform 0.1s ease;
+            animation: fadeInUp 0.3s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .order-id {
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .order-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-новый { background: #ffcc0020; color: #ffcc00; }
+        .status-принят { background: #34c75920; color: #34c759; }
+        .status-отказ { background: #ff3b3020; color: #ff3b30; }
+        .status-подготовка_модели { background: #ff950020; color: #ff9500; }
+        .status-цена_выставлена { background: #007aff20; color: #007aff; }
+        .status-оплачено { background: #34c75930; color: #34c759; }
+        .status-печать { background: #5856d620; color: #5856d6; }
+        .status-готова { background: #30b0c020; color: #30b0c0; }
+
+        .order-details {
+            font-size: 14px;
+            color: var(--tg-theme-hint-color, #8e8e93);
+            margin-top: 8px;
+        }
+
+        .order-details div {
+            margin-bottom: 4px;
+        }
+
+        /* Форма заказа */
+        .form-group {
+            margin-bottom: 20px;
+            animation: fadeInUp 0.3s ease;
+        }
+
+        label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--tg-theme-text-color, #000000);
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid var(--tg-theme-secondary-bg-color, #e5e5ea);
+            border-radius: 12px;
+            font-size: 16px;
+            background: var(--tg-theme-secondary-bg-color, #f9f9f9);
+            color: var(--tg-theme-text-color, #000000);
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--tg-theme-button-color, #007aff);
+            transform: scale(1.01);
+        }
+
+        /* Кнопка количества */
+        .quantity-selector {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--tg-theme-secondary-bg-color, #f9f9f9);
+            border-radius: 12px;
+            padding: 8px;
+        }
+
+        .quantity-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: var(--tg-theme-button-color, #007aff);
+            color: white;
+            border: none;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+        }
+
+        .quantity-btn:active {
+            transform: scale(0.95);
+        }
+
+        .quantity-value {
+            flex: 1;
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        /* Основная кнопка отправки */
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: var(--tg-theme-button-color, #007aff);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            border: none;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .submit-btn:active {
+            transform: scale(0.98);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            transform: none;
+        }
+
+        /* Статусное сообщение */
+        .status-msg {
+            margin-top: 16px;
+            padding: 14px;
+            border-radius: 16px;
+            display: none;
+            text-align: center;
+            font-size: 14px;
+            animation: fadeInUp 0.3s ease;
+        }
+
+        .status-msg.success {
+            background: #34c75920;
+            color: #34c759;
+            display: block;
+        }
+
+        .status-msg.error {
+            background: #ff3b3020;
+            color: #ff3b30;
+            display: block;
+        }
+
+        /* Пустое состояние */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--tg-theme-hint-color, #8e8e93);
+        }
+
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        /* Скрытые секции */
+        .hidden {
+            display: none;
+        }
+
+        /* Анимация пульсации для загрузки */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .loading-pulse {
+            animation: pulse 1s ease-in-out infinite;
+        }
+    </style>
 </head>
 <body>
-    <h1>🖨️ 3D Печать</h1>
-    <p>Ваш мини-апп работает!</p>
-    <button onclick="tg.close()">Закрыть</button>
-    
+    <div class="loading-bar" id="loadingBar"></div>
+
+    <div class="container">
+        <div class="tabs">
+            <div class="tab active" data-tab="order">📦 Заказать</div>
+            <div class="tab" data-tab="history">📋 История</div>
+        </div>
+
+        <!-- Вкладка заказа -->
+        <div id="orderTab">
+            <div class="form-group">
+                <label>📝 Ваше имя</label>
+                <input type="text" id="name" placeholder="Александр" autocomplete="off">
+            </div>
+
+            <div class="form-group">
+                <label>📞 Телефон</label>
+                <input type="tel" id="phone" placeholder="+7 999 123-45-67" autocomplete="off">
+            </div>
+
+            <div class="form-group">
+                <label>📦 Описание модели</label>
+                <textarea id="model" rows="2" placeholder="Что нужно напечатать? Размеры, цвет, материал..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>🔢 Количество</label>
+                <div class="quantity-selector">
+                    <button class="quantity-btn" id="minusBtn">−</button>
+                    <span class="quantity-value" id="quantityValue">1</span>
+                    <button class="quantity-btn" id="plusBtn">+</button>
+                </div>
+            </div>
+
+            <button class="submit-btn" id="submitBtn">✅ Отправить заказ</button>
+            <div id="statusMsg" class="status-msg"></div>
+        </div>
+
+        <!-- Вкладка истории -->
+        <div id="historyTab" class="hidden">
+            <div id="ordersList" class="orders-list">
+                <div class="empty-state">
+                    <div class="icon">📭</div>
+                    <div>Загрузка заказов...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
+
+        // Эмодзи и названия статусов
+        const statusEmoji = {
+            'новый': '🟡',
+            'принят': '🟢',
+            'отказ': '🔴',
+            'подготовка модели': '🟠',
+            'цена выставлена': '💰',
+            'ожидает оплаты': '💵',
+            'оплачено': '✅',
+            'подготовка принтера': '🔧',
+            'печать': '🖨️',
+            'готова': '🎉'
+        };
+
+        const statusName = {
+            'новый': 'Ожидает',
+            'принят': 'Принят',
+            'отказ': 'Отклонён',
+            'подготовка модели': 'Подготовка',
+            'цена выставлена': 'Цена выставлена',
+            'ожидает оплаты': 'Ждём оплату',
+            'оплачено': 'Оплачено',
+            'подготовка принтера': 'Готовим принтер',
+            'печать': 'Печатаем',
+            'готова': 'Готов к выдаче'
+        };
+
+        let quantity = 1;
+        const user = tg.initDataUnsafe?.user || {};
+        const BASE_URL = 'https://ТВОЙ_САЙТ.netlify.app'; // ← ЗАМЕНИ НА СВОЙ АДРЕС!
+        const BOT_API_URL = 'https://ТВОЙ-БОТ.onrender.com'; // ← ЗАМЕНИ НА АДРЕС ТВОЕГО БОТА
+
+        // Элементы
+        const quantitySpan = document.getElementById('quantityValue');
+        const minusBtn = document.getElementById('minusBtn');
+        const plusBtn = document.getElementById('plusBtn');
+        const submitBtn = document.getElementById('submitBtn');
+        const statusMsg = document.getElementById('statusMsg');
+        const loadingBar = document.getElementById('loadingBar');
+
+        // Управление количеством
+        minusBtn.onclick = () => {
+            if (quantity > 1) {
+                quantity--;
+                quantitySpan.textContent = quantity;
+                animateButton(minusBtn);
+            }
+        };
+
+        plusBtn.onclick = () => {
+            quantity++;
+            quantitySpan.textContent = quantity;
+            animateButton(plusBtn);
+        };
+
+        function animateButton(btn) {
+            btn.style.transform = 'scale(0.95)';
+            setTimeout(() => { btn.style.transform = ''; }, 100);
+        }
+
+        function showLoading() {
+            loadingBar.style.width = '100%';
+            setTimeout(() => { loadingBar.style.width = '0%'; }, 500);
+        }
+
+        function showStatus(text, isError = false) {
+            statusMsg.textContent = text;
+            statusMsg.className = `status-msg ${isError ? 'error' : 'success'}`;
+            setTimeout(() => {
+                statusMsg.className = 'status-msg';
+            }, 4000);
+        }
+
+        // Отправка заказа
+        submitBtn.onclick = async () => {
+            const name = document.getElementById('name').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const model = document.getElementById('model').value.trim();
+
+            if (!name || !phone || !model) {
+                showStatus('❌ Заполните все поля', true);
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = '⏳ Отправляем...';
+            showLoading();
+
+            try {
+                const response = await fetch(`${BOT_API_URL}/webapp_order`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: user.id,
+                        username: user.username || '',
+                        name: name,
+                        phone: phone,
+                        model: model,
+                        quantity: quantity
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.ok) {
+                    showStatus('✅ Заказ отправлен! Менеджер свяжется с вами.');
+                    document.getElementById('name').value = '';
+                    document.getElementById('phone').value = '';
+                    document.getElementById('model').value = '';
+                    quantity = 1;
+                    quantitySpan.textContent = '1';
+                    tg.MainButton.setText('Закрыть');
+                    tg.MainButton.show();
+                } else {
+                    showStatus('❌ Ошибка: ' + (result.error || 'попробуйте позже'), true);
+                }
+            } catch (error) {
+                showStatus('❌ Ошибка соединения. Проверьте интернет.', true);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '✅ Отправить заказ';
+            }
+        };
+
+        // Загрузка истории заказов
+        async function loadOrders() {
+            const container = document.getElementById('ordersList');
+            container.innerHTML = '<div class="empty-state"><div class="icon">⏳</div><div>Загрузка...</div></div>';
+
+            try {
+                const response = await fetch(`${BOT_API_URL}/webapp_orders`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: user.id })
+                });
+                const data = await response.json();
+
+                if (data.orders && data.orders.length > 0) {
+                    container.innerHTML = '';
+                    data.orders.forEach(order => {
+                        const emoji = statusEmoji[order.status] || '⚪';
+                        const status = statusName[order.status] || order.status;
+                        const total = order.total_price || 0;
+                        const card = document.createElement('div');
+                        card.className = 'order-card';
+                        card.innerHTML = `
+                            <div class="order-header">
+                                <span class="order-id">№${order.id}</span>
+                                <span class="order-status status-${order.status.replace(/ /g, '_')}">${emoji} ${status}</span>
+                            </div>
+                            <div class="order-details">
+                                <div>📦 ${escapeHtml(order.model_name)}</div>
+                                <div>🔢 ${order.quantity} шт.</div>
+                                ${total > 0 ? `<div>💰 ${total.toLocaleString()} руб.</div>` : ''}
+                                <div>📅 ${new Date(order.created_at).toLocaleDateString()}</div>
+                            </div>
+                        `;
+                        container.appendChild(card);
+                    });
+                } else {
+                    container.innerHTML = '<div class="empty-state"><div class="icon">📭</div><div>У вас пока нет заказов</div><div style="font-size: 12px; margin-top: 8px;">Нажмите «Заказать», чтобы сделать первый заказ</div></div>';
+                }
+            } catch (error) {
+                container.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><div>Ошибка загрузки</div><div style="font-size: 12px;">Проверьте соединение</div></div>';
+            }
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        // Переключение вкладок
+        const tabs = document.querySelectorAll('.tab');
+        const orderTab = document.getElementById('orderTab');
+        const historyTab = document.getElementById('historyTab');
+
+        tabs.forEach(tab => {
+            tab.onclick = () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                const tabName = tab.dataset.tab;
+                if (tabName === 'order') {
+                    orderTab.classList.remove('hidden');
+                    historyTab.classList.add('hidden');
+                } else {
+                    orderTab.classList.add('hidden');
+                    historyTab.classList.remove('hidden');
+                    loadOrders();
+                }
+            };
+        });
+
+        // Кнопка закрытия
+        tg.MainButton.setText('Закрыть');
+        tg.MainButton.onClick(() => tg.close());
+
+        // Приветствие
+        setTimeout(() => {
+            if (user.first_name) {
+                const greeting = document.createElement('div');
+                greeting.style.cssText = 'text-align: center; margin-bottom: 20px; font-size: 14px; color: var(--tg-theme-hint-color);';
+                greeting.textContent = `👋 Здравствуйте, ${user.first_name}!`;
+                document.getElementById('orderTab').insertBefore(greeting, document.getElementById('orderTab').firstChild);
+                setTimeout(() => greeting.style.opacity = '0', 3000);
+                setTimeout(() => greeting.remove(), 3500);
+            }
+        }, 500);
     </script>
 </body>
 </html>
