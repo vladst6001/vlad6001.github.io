@@ -1,0 +1,28 @@
+from flask import Flask, request, jsonify
+
+flask_app = Flask(__name__)
+
+@flask_app.route('/webapp_order', methods=['POST'])
+def webapp_order():
+    data = request.json
+    order_id = create_order(
+        client_id=data.get('user_id'),
+        client_name=data['name'],
+        client_username=data.get('username', 'нет'),
+        phone=data['phone'],
+        model_name=data['model'],
+        quantity=data['quantity']
+    )
+    
+    # Уведомление админу
+    import asyncio
+    from aiogram import Bot
+    
+    admin_bot_temp = Bot(token=ADMIN_BOT_TOKEN)
+    asyncio.run(admin_bot_temp.send_message(
+        ADMIN_CHAT_ID,
+        f"🆕 НОВЫЙ ЗАКАЗ #{order_id} из Mini App!\n\n"
+        f"👤 {data['name']}\n📱 {data['phone']}\n📦 {data['model']}\n🔢 {data['quantity']} шт."
+    ))
+    
+    return jsonify({'ok': True, 'order_id': order_id})
