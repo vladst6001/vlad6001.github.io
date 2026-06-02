@@ -396,33 +396,41 @@
             margin-bottom: 32px;
         }
 
-        .modal {
+        /* Модальное окно для круглой обрезки */
+        .cropper-modal {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.9);
+            background: rgba(0,0,0,0.95);
             z-index: 1000;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            flex-direction: column;
-            padding: 20px;
         }
 
-        .modal .cropper-container {
-            max-width: 90vw;
-            max-height: 60vh;
+        .cropper-container-custom {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
         }
 
-        .modal-buttons {
+        .cropper-view-box,
+        .cropper-face {
+            border-radius: 50%;
+        }
+
+        .cropper-modal-buttons {
             display: flex;
             gap: 12px;
             margin-top: 20px;
+            padding: 16px;
         }
 
-        .modal-btn {
+        .cropper-btn {
+            flex: 1;
             padding: 12px 24px;
             border-radius: 12px;
             border: none;
@@ -431,12 +439,12 @@
             cursor: pointer;
         }
 
-        .modal-btn-cancel {
+        .cropper-btn-cancel {
             background: #ff3b30;
             color: white;
         }
 
-        .modal-btn-save {
+        .cropper-btn-save {
             background: #34c759;
             color: white;
         }
@@ -456,31 +464,11 @@
             border-radius: 12px;
             cursor: pointer;
             transition: all 0.1s ease;
+            min-width: 80px;
         }
 
         .avatar-option:active {
             transform: scale(0.95);
-        }
-
-        .emoji-grid {
-            display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            gap: 12px;
-            margin-top: 16px;
-        }
-
-        .emoji-item {
-            font-size: 32px;
-            text-align: center;
-            padding: 8px;
-            cursor: pointer;
-            border-radius: 12px;
-            transition: all 0.1s ease;
-        }
-
-        .emoji-item:active {
-            transform: scale(0.9);
-            background: var(--tg-theme-button-color, #007aff20);
         }
 
         .theme-option {
@@ -492,6 +480,56 @@
             border-radius: 12px;
             margin-bottom: 8px;
             cursor: pointer;
+        }
+
+        .emoji-modal-content {
+            background: var(--tg-theme-bg-color, white);
+            border-radius: 20px;
+            padding: 20px;
+            width: 90%;
+            max-width: 300px;
+        }
+
+        .emoji-modal-content h3 {
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .emoji-input {
+            width: 100%;
+            padding: 14px;
+            font-size: 28px;
+            text-align: center;
+            border-radius: 12px;
+            border: 1px solid var(--tg-theme-hint-color);
+            background: var(--tg-theme-secondary-bg-color);
+            color: var(--tg-theme-text-color);
+        }
+
+        .emoji-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .emoji-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 12px;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .emoji-btn-cancel {
+            background: #ff3b30;
+            color: white;
+        }
+
+        .emoji-btn-save {
+            background: #34c759;
+            color: white;
         }
     </style>
 </head>
@@ -618,24 +656,9 @@
                     <img id="settingsAvatarImg" style="display:none; width:100%; height:100%; object-fit:cover;">
                 </div>
                 <div class="avatar-options">
-                    <div class="avatar-option" id="chooseEmojiBtn">😊 Эмодзи</div>
-                    <div class="avatar-option" id="takePhotoBtn">📸 Снять фото</div>
-                    <div class="avatar-option" id="choosePhotoBtn">🖼️ Из галереи</div>
+                    <div class="avatar-option" id="choosePhotoBtn">🖼️ Выбрать фото</div>
+                    <div class="avatar-option" id="emojiInputBtn">😊 Ввести эмодзи</div>
                     <div class="avatar-option" id="removeAvatarBtn" style="color: #ff3b30;">🗑️ Удалить</div>
-                </div>
-                <div id="emojiSelector" class="emoji-grid hidden">
-                    <div class="emoji-item" data-emoji="👤">👤</div>
-                    <div class="emoji-item" data-emoji="👨">👨</div>
-                    <div class="emoji-item" data-emoji="👩">👩</div>
-                    <div class="emoji-item" data-emoji="🧑">🧑</div>
-                    <div class="emoji-item" data-emoji="🖨️">🖨️</div>
-                    <div class="emoji-item" data-emoji="⭐">⭐</div>
-                    <div class="emoji-item" data-emoji="🔥">🔥</div>
-                    <div class="emoji-item" data-emoji="👍">👍</div>
-                    <div class="emoji-item" data-emoji="😎">😎</div>
-                    <div class="emoji-item" data-emoji="🥇">🥇</div>
-                    <div class="emoji-item" data-emoji="🎯">🎯</div>
-                    <div class="emoji-item" data-emoji="💪">💪</div>
                 </div>
             </div>
             
@@ -661,11 +684,26 @@
         </div>
     </div>
 
-    <div id="cropperModal" class="modal" style="display: none;">
-        <img id="cropperImage" style="max-width: 90vw; max-height: 60vh;">
-        <div class="modal-buttons">
-            <button class="modal-btn modal-btn-cancel" id="cancelCrop">Отмена</button>
-            <button class="modal-btn modal-btn-save" id="saveCrop">Сохранить</button>
+    <!-- Модалка для круглой обрезки фото -->
+    <div id="cropperModal" class="cropper-modal" style="display: none;">
+        <div class="cropper-container-custom">
+            <img id="cropperImage" style="max-width: 100%; max-height: 60vh;">
+        </div>
+        <div class="cropper-modal-buttons">
+            <button class="cropper-btn cropper-btn-cancel" id="cancelCrop">Отмена</button>
+            <button class="cropper-btn cropper-btn-save" id="saveCrop">Сохранить</button>
+        </div>
+    </div>
+
+    <!-- Модалка для ввода эмодзи -->
+    <div id="emojiModal" class="cropper-modal" style="display: none;">
+        <div class="emoji-modal-content">
+            <h3>Введите эмодзи</h3>
+            <input type="text" id="emojiInput" class="emoji-input" placeholder="😊" autocomplete="off">
+            <div class="emoji-buttons">
+                <button id="emojiCancelBtn" class="emoji-btn emoji-btn-cancel">Отмена</button>
+                <button id="emojiSaveBtn" class="emoji-btn emoji-btn-save">Сохранить</button>
+            </div>
         </div>
     </div>
 
@@ -679,12 +717,19 @@
         let userProfile = { name: '', phone: '', avatar: '👤', registered: false, theme: 'light', avatarImage: null };
         let cropper = null;
 
-        // ========== ФУНКЦИЯ ДЛЯ ФОРМАТИРОВАНИЯ ДАТЫ ==========
         function formatDate(dateString) {
-            if (!dateString) return 'Дата неизвестна';
+            if (!dateString || dateString === 'null' || dateString === 'None') {
+                const now = new Date();
+                const day = now.getDate().toString().padStart(2, '0');
+                const month = (now.getMonth() + 1).toString().padStart(2, '0');
+                const year = now.getFullYear();
+                const hours = now.getHours().toString().padStart(2, '0');
+                const minutes = now.getMinutes().toString().padStart(2, '0');
+                return `${day}.${month}.${year} ${hours}:${minutes}`;
+            }
             const match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
             if (match) {
-                const [_, year, month, day, hour, minute, second] = match;
+                const [_, year, month, day, hour, minute] = match;
                 return `${day}.${month}.${year} ${hour}:${minute}`;
             }
             return dateString;
@@ -806,7 +851,6 @@
             document.getElementById('settingsName').value = userProfile.name;
             document.getElementById('settingsPhone').value = userProfile.phone;
             setupPhoneField(document.getElementById('settingsPhone'));
-            document.getElementById('emojiSelector').classList.add('hidden');
             
             document.getElementById('themeLightCheck').style.display = userProfile.theme === 'light' ? 'inline' : 'none';
             document.getElementById('themeDarkCheck').style.display = userProfile.theme === 'dark' ? 'inline' : 'none';
@@ -825,33 +869,35 @@
             document.getElementById('settingsPanel').classList.remove('hidden');
         }
 
-        document.getElementById('chooseEmojiBtn').onclick = () => {
-            const selector = document.getElementById('emojiSelector');
-            selector.classList.toggle('hidden');
+        // Открытие модалки для ввода эмодзи
+        document.getElementById('emojiInputBtn').onclick = () => {
+            document.getElementById('emojiModal').style.display = 'flex';
+            document.getElementById('emojiInput').value = '';
+            document.getElementById('emojiInput').focus();
         };
-        
-        document.querySelectorAll('.emoji-item').forEach(emoji => {
-            emoji.onclick = () => {
-                const selectedEmoji = emoji.dataset.emoji;
-                userProfile.avatar = selectedEmoji;
+
+        document.getElementById('emojiCancelBtn').onclick = () => {
+            document.getElementById('emojiModal').style.display = 'none';
+        };
+
+        document.getElementById('emojiSaveBtn').onclick = () => {
+            const emoji = document.getElementById('emojiInput').value.trim();
+            if (emoji && emoji.length > 0) {
+                userProfile.avatar = emoji;
                 userProfile.avatarImage = null;
                 updateAvatarDisplay();
-                document.getElementById('emojiSelector').classList.add('hidden');
-            };
-        });
-
-        document.getElementById('takePhotoBtn').onclick = () => {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*';
-            input.capture = 'environment';
-            input.onchange = (e) => {
-                const file = e.target.files[0];
-                if (file) openCropper(file);
-            };
-            input.click();
+            }
+            document.getElementById('emojiModal').style.display = 'none';
         };
 
+        // Закрытие модалки по клику вне
+        document.getElementById('emojiModal').onclick = (e) => {
+            if (e.target === document.getElementById('emojiModal')) {
+                document.getElementById('emojiModal').style.display = 'none';
+            }
+        };
+
+        // Выбор фото
         document.getElementById('choosePhotoBtn').onclick = () => {
             const input = document.createElement('input');
             input.type = 'file';
@@ -875,16 +921,25 @@
                 const img = document.getElementById('cropperImage');
                 img.src = event.target.result;
                 document.getElementById('cropperModal').style.display = 'flex';
+                
                 if (cropper) cropper.destroy();
+                
                 cropper = new Cropper(img, {
                     aspectRatio: 1,
                     viewMode: 1,
                     dragMode: 'move',
+                    initialAspectRatio: 1,
                     autoCropArea: 1,
                     cropBoxMovable: true,
                     cropBoxResizable: true,
                     zoomable: true,
-                    zoomOnWheel: true
+                    zoomOnWheel: true,
+                    movable: true,
+                    guides: false,
+                    center: true,
+                    highlight: false,
+                    background: false,
+                    viewMode: 1
                 });
             };
             reader.readAsDataURL(file);
@@ -892,18 +947,25 @@
 
         document.getElementById('cancelCrop').onclick = () => {
             document.getElementById('cropperModal').style.display = 'none';
-            if (cropper) cropper.destroy();
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
         };
 
         document.getElementById('saveCrop').onclick = () => {
             if (cropper) {
-                const canvas = cropper.getCroppedCanvas({ width: 300, height: 300 });
+                const canvas = cropper.getCroppedCanvas({
+                    width: 300,
+                    height: 300
+                });
                 const croppedImage = canvas.toDataURL('image/jpeg', 0.9);
                 userProfile.avatarImage = croppedImage;
                 userProfile.avatar = null;
                 updateAvatarDisplay();
                 document.getElementById('cropperModal').style.display = 'none';
                 cropper.destroy();
+                cropper = null;
             }
         };
 
