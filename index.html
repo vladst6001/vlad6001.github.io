@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>3D Печать — Mini App</title>
+    <title>3Dprinti</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -18,152 +20,180 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             padding: 0;
             margin: 0;
-            min-height: 100vh;
+            transition: background 0.3s ease, color 0.3s ease;
         }
 
-        /* Анимация загрузки */
-        .loading-bar {
-            position: fixed;
+        body.dark {
+            --tg-theme-bg-color: #1a1a1a;
+            --tg-theme-text-color: #ffffff;
+            --tg-theme-secondary-bg-color: #2c2c2e;
+            --tg-theme-hint-color: #8e8e93;
+            --tg-theme-button-color: #0a84ff;
+        }
+
+        body.light {
+            --tg-theme-bg-color: #ffffff;
+            --tg-theme-text-color: #000000;
+            --tg-theme-secondary-bg-color: #f9f9f9;
+            --tg-theme-hint-color: #8e8e93;
+            --tg-theme-button-color: #007aff;
+        }
+
+        .header {
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            padding: 14px 16px;
+            border-bottom: 0.5px solid var(--tg-theme-hint-color, #c6c6c8);
+            position: sticky;
             top: 0;
-            left: 0;
-            width: 0%;
-            height: 3px;
-            background: var(--tg-theme-button-color, #007aff);
-            transition: width 0.3s ease;
-            z-index: 1000;
-            border-radius: 0 2px 2px 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
         }
 
         .container {
             max-width: 500px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 16px;
             padding-bottom: 80px;
         }
 
-        /* Вкладки */
-        .tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 24px;
-            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
-            padding: 4px;
-            border-radius: 32px;
+        .fade-in {
+            animation: fadeIn 0.3s ease;
         }
 
-        .tab {
-            flex: 1;
-            text-align: center;
-            padding: 12px;
-            border-radius: 28px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.2s ease;
-            color: var(--tg-theme-hint-color, #8e8e93);
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        .tab.active {
-            background: var(--tg-theme-button-color, #007aff);
-            color: var(--tg-theme-button-text-color, #ffffff);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Карточки заказов */
-        .order-card {
+        .menu-item {
             background: var(--tg-theme-secondary-bg-color, #f9f9f9);
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 12px;
-            transition: transform 0.1s ease;
-            animation: fadeInUp 0.3s ease;
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .order-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-
-        .order-id {
-            font-weight: 700;
-            font-size: 16px;
-        }
-
-        .order-status {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-
-        .status-новый { background: #ffcc0020; color: #ffcc00; }
-        .status-принят { background: #34c75920; color: #34c759; }
-        .status-отказ { background: #ff3b3020; color: #ff3b30; }
-        .status-подготовка_модели { background: #ff950020; color: #ff9500; }
-        .status-цена_выставлена { background: #007aff20; color: #007aff; }
-        .status-оплачено { background: #34c75930; color: #34c759; }
-        .status-печать { background: #5856d620; color: #5856d6; }
-        .status-готова { background: #30b0c020; color: #30b0c0; }
-
-        .order-details {
-            font-size: 14px;
-            color: var(--tg-theme-hint-color, #8e8e93);
-            margin-top: 8px;
-        }
-
-        .order-details div {
-            margin-bottom: 4px;
-        }
-
-        /* Форма заказа */
-        .form-group {
-            margin-bottom: 20px;
-            animation: fadeInUp 0.3s ease;
-        }
-
-        label {
-            display: block;
-            font-weight: 500;
-            margin-bottom: 8px;
-            font-size: 14px;
-            color: var(--tg-theme-text-color, #000000);
-        }
-
-        input, textarea, select {
-            width: 100%;
-            padding: 14px;
-            border: 1px solid var(--tg-theme-secondary-bg-color, #e5e5ea);
             border-radius: 12px;
+            margin-bottom: 8px;
+            transition: all 0.1s ease;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .menu-item:active {
+            transform: scale(0.98);
+            background: var(--tg-theme-hint-color, #e5e5ea);
+        }
+
+        .menu-button {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            cursor: pointer;
+            width: 100%;
+            background: none;
+            border: none;
             font-size: 16px;
-            background: var(--tg-theme-secondary-bg-color, #f9f9f9);
             color: var(--tg-theme-text-color, #000000);
             font-family: inherit;
-            transition: all 0.2s ease;
         }
 
-        input:focus, textarea:focus, select:focus {
+        .menu-button-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .menu-icon {
+            font-size: 22px;
+        }
+
+        .menu-arrow {
+            color: var(--tg-theme-hint-color, #8e8e93);
+            font-size: 18px;
+        }
+
+        .user-card {
+            background: var(--tg-theme-secondary-bg-color, #f9f9f9);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .user-avatar {
+            width: 56px;
+            height: 56px;
+            background: var(--tg-theme-button-color, #007aff);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .user-avatar span {
+            font-size: 28px;
+        }
+
+        .user-avatar:active {
+            transform: scale(0.95);
+        }
+
+        .user-info {
+            flex: 1;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .user-phone {
+            font-size: 13px;
+            color: var(--tg-theme-hint-color, #8e8e93);
+        }
+
+        .form-field {
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .form-field label {
+            display: block;
+            font-size: 14px;
+            color: var(--tg-theme-hint-color, #8e8e93);
+            margin-bottom: 6px;
+        }
+
+        .form-field input, .form-field textarea, .form-field select {
+            width: 100%;
+            padding: 14px;
+            border: 0.5px solid var(--tg-theme-hint-color, #e5e5ea);
+            border-radius: 12px;
+            font-size: 16px;
+            background: var(--tg-theme-secondary-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            font-family: inherit;
+        }
+
+        .form-field input:focus, .form-field textarea:focus, .form-field select:focus {
             outline: none;
             border-color: var(--tg-theme-button-color, #007aff);
-            transform: scale(1.01);
         }
 
-        /* Кнопка количества */
-        .quantity-selector {
+        .quantity-box {
             display: flex;
             align-items: center;
             gap: 12px;
@@ -173,150 +203,469 @@
         }
 
         .quantity-btn {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
             background: var(--tg-theme-button-color, #007aff);
             color: white;
             border: none;
             font-size: 24px;
             font-weight: bold;
             cursor: pointer;
-            transition: transform 0.1s ease;
-        }
-
-        .quantity-btn:active {
-            transform: scale(0.95);
         }
 
         .quantity-value {
             flex: 1;
             text-align: center;
-            font-size: 28px;
-            font-weight: bold;
+            font-size: 24px;
+            font-weight: 600;
         }
 
-        /* Основная кнопка отправки */
-        .submit-btn {
+        .send-btn {
             width: 100%;
             padding: 16px;
             background: var(--tg-theme-button-color, #007aff);
             color: var(--tg-theme-button-text-color, #ffffff);
             border: none;
-            border-radius: 16px;
+            border-radius: 12px;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            margin-top: 12px;
-            transition: all 0.2s ease;
-        }
-
-        .submit-btn:active {
-            transform: scale(0.98);
-        }
-
-        .submit-btn:disabled {
-            opacity: 0.6;
-            transform: none;
-        }
-
-        /* Статусное сообщение */
-        .status-msg {
             margin-top: 16px;
-            padding: 14px;
-            border-radius: 16px;
-            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .send-btn:disabled {
+            opacity: 0.6;
+        }
+
+        .file-area {
+            background: var(--tg-theme-secondary-bg-color, #f9f9f9);
+            border: 1px dashed var(--tg-theme-hint-color, #c6c6c8);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .file-area:hover {
+            border-color: var(--tg-theme-button-color, #007aff);
+            background: var(--tg-theme-button-color, #007aff10);
+        }
+
+        .file-info {
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            border-radius: 12px;
+            padding: 12px;
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .remove-file {
+            color: #ff3b30;
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        .status {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 12px;
             text-align: center;
             font-size: 14px;
-            animation: fadeInUp 0.3s ease;
+            display: none;
         }
 
-        .status-msg.success {
+        .status.success {
             background: #34c75920;
             color: #34c759;
             display: block;
         }
 
-        .status-msg.error {
+        .status.error {
             background: #ff3b3020;
             color: #ff3b30;
             display: block;
         }
 
-        /* Пустое состояние */
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
+        .history-card {
+            background: var(--tg-theme-secondary-bg-color, #f9f9f9);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .history-card:active {
+            transform: scale(0.98);
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .history-id {
+            font-weight: 600;
+        }
+
+        .history-status {
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 16px;
+        }
+
+        .status-new { background: #ffcc0020; color: #ffcc00; }
+        .status-accepted { background: #34c75920; color: #34c759; }
+        .status-rejected { background: #ff3b3020; color: #ff3b30; }
+        .status-preparing { background: #ff950020; color: #ff9500; }
+        .status-paid { background: #34c75930; color: #34c759; }
+        .status-printing { background: #5856d620; color: #5856d6; }
+        .status-ready { background: #30b0c020; color: #30b0c0; }
+
+        .order-detail-card {
+            background: var(--tg-theme-secondary-bg-color, #f9f9f9);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 0.5px solid var(--tg-theme-hint-color, #e5e5ea);
+        }
+
+        .detail-label {
             color: var(--tg-theme-hint-color, #8e8e93);
         }
 
-        .empty-state .icon {
-            font-size: 48px;
-            margin-bottom: 12px;
+        .detail-value {
+            font-weight: 500;
+            text-align: right;
         }
 
-        /* Скрытые секции */
+        .back-button {
+            background: none;
+            border: none;
+            font-size: 17px;
+            color: var(--tg-theme-button-color, #007aff);
+            padding: 12px 0;
+            text-align: left;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
         .hidden {
             display: none;
         }
 
-        /* Анимация пульсации для загрузки */
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--tg-theme-hint-color, #8e8e93);
         }
-        .loading-pulse {
-            animation: pulse 1s ease-in-out infinite;
+
+        .register-container {
+            text-align: center;
+            padding: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .register-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .register-sub {
+            color: var(--tg-theme-hint-color, #8e8e93);
+            margin-bottom: 32px;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .modal .cropper-container {
+            max-width: 90vw;
+            max-height: 60vh;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            padding: 12px 24px;
+            border-radius: 12px;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .modal-btn-cancel {
+            background: #ff3b30;
+            color: white;
+        }
+
+        .modal-btn-save {
+            background: #34c759;
+            color: white;
+        }
+
+        .avatar-options {
+            display: flex;
+            gap: 16px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+
+        .avatar-option {
+            flex: 1;
+            text-align: center;
+            padding: 12px;
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.1s ease;
+        }
+
+        .avatar-option:active {
+            transform: scale(0.95);
+        }
+
+        .emoji-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .emoji-item {
+            font-size: 32px;
+            text-align: center;
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 12px;
+            transition: all 0.1s ease;
+        }
+
+        .emoji-item:active {
+            transform: scale(0.9);
+            background: var(--tg-theme-button-color, #007aff20);
+        }
+
+        .theme-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            background: var(--tg-theme-secondary-bg-color, #f9f9f9);
+            border-radius: 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
-    <div class="loading-bar" id="loadingBar"></div>
+    <div class="header">
+        <h1>3Dprinti</h1>
+    </div>
 
     <div class="container">
-        <div class="tabs">
-            <div class="tab active" data-tab="order">📦 Заказать</div>
-            <div class="tab" data-tab="history">📋 История</div>
+        <div id="registerScreen" class="hidden">
+            <div class="register-container">
+                <div class="register-title">Добро пожаловать в 3Dprinti!</div>
+                <div class="register-sub">Давайте познакомимся</div>
+                
+                <div class="form-field">
+                    <label>Ваше имя</label>
+                    <input type="text" id="regName" placeholder="Александр">
+                </div>
+                <div class="form-field">
+                    <label>Телефон</label>
+                    <input type="tel" id="regPhone" placeholder="+375 XX XXX-XX-XX" value="+375">
+                </div>
+                <button class="send-btn" id="registerBtn">Сохранить</button>
+                <div id="regStatus" class="status"></div>
+            </div>
         </div>
 
-        <!-- Вкладка заказа -->
-        <div id="orderTab">
-            <div class="form-group">
-                <label>📝 Ваше имя</label>
-                <input type="text" id="name" placeholder="Александр" autocomplete="off">
-            </div>
-
-            <div class="form-group">
-                <label>📞 Телефон</label>
-                <input type="tel" id="phone" placeholder="+7 999 123-45-67" autocomplete="off">
-            </div>
-
-            <div class="form-group">
-                <label>📦 Описание модели</label>
-                <textarea id="model" rows="2" placeholder="Что нужно напечатать? Размеры, цвет, материал..."></textarea>
-            </div>
-
-            <div class="form-group">
-                <label>🔢 Количество</label>
-                <div class="quantity-selector">
-                    <button class="quantity-btn" id="minusBtn">−</button>
-                    <span class="quantity-value" id="quantityValue">1</span>
-                    <button class="quantity-btn" id="plusBtn">+</button>
+        <div id="mainMenu">
+            <div class="user-card" id="userCard">
+                <div class="user-avatar" id="userAvatar">
+                    <span id="avatarText">👤</span>
+                    <img id="avatarImg" style="display:none;">
+                </div>
+                <div class="user-info">
+                    <div class="user-name" id="userName">Гость</div>
+                    <div class="user-phone" id="userPhone">не указан</div>
                 </div>
             </div>
 
-            <button class="submit-btn" id="submitBtn">✅ Отправить заказ</button>
-            <div id="statusMsg" class="status-msg"></div>
-        </div>
-
-        <!-- Вкладка истории -->
-        <div id="historyTab" class="hidden">
-            <div id="ordersList" class="orders-list">
-                <div class="empty-state">
-                    <div class="icon">📭</div>
-                    <div>Загрузка заказов...</div>
+            <div class="menu-item" data-action="new">
+                <div class="menu-button">
+                    <div class="menu-button-left">
+                        <span class="menu-icon">📦</span>
+                        <span>Новый заказ</span>
+                    </div>
+                    <span class="menu-arrow">→</span>
                 </div>
             </div>
+            <div class="menu-item" data-action="history">
+                <div class="menu-button">
+                    <div class="menu-button-left">
+                        <span class="menu-icon">📋</span>
+                        <span>Мои заказы</span>
+                    </div>
+                    <span class="menu-arrow">→</span>
+                </div>
+            </div>
+            <div class="menu-item" data-action="settings">
+                <div class="menu-button">
+                    <div class="menu-button-left">
+                        <span class="menu-icon">⚙️</span>
+                        <span>Настройки</span>
+                    </div>
+                    <span class="menu-arrow">→</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="orderForm" class="hidden">
+            <button class="back-button" id="backToMenu">← Назад</button>
+            
+            <div class="form-field">
+                <label>Что печатаем?</label>
+                <textarea id="modelDesc" rows="2" placeholder="Название модели, размеры, цвет..."></textarea>
+            </div>
+
+            <div class="form-field">
+                <label>Количество</label>
+                <div class="quantity-box">
+                    <button class="quantity-btn" id="minusQty">−</button>
+                    <span class="quantity-value" id="qtyValue">1</span>
+                    <button class="quantity-btn" id="plusQty">+</button>
+                </div>
+            </div>
+
+            <div class="form-field">
+                <label>Файл или фото (необязательно)</label>
+                <div class="file-area" id="fileArea">
+                    📎 Нажмите или перетащите файл
+                    <input type="file" id="fileInput" accept=".stl,.obj,.3mf,.jpg,.png,.jpeg" style="display:none">
+                </div>
+                <div id="fileInfo" class="hidden file-info">
+                    <span id="fileName"></span>
+                    <span class="remove-file" id="removeFile">✖</span>
+                </div>
+            </div>
+
+            <button class="send-btn" id="sendOrderBtn">✅ Отправить заказ</button>
+            <div id="formStatus" class="status"></div>
+        </div>
+
+        <div id="historyList" class="hidden">
+            <button class="back-button" id="backFromHistory">← Назад</button>
+            <div id="ordersContainer"></div>
+        </div>
+
+        <div id="settingsPanel" class="hidden">
+            <button class="back-button" id="backFromSettings">← Назад</button>
+            
+            <div class="form-field">
+                <label>Имя</label>
+                <input type="text" id="settingsName" placeholder="Ваше имя">
+            </div>
+            
+            <div class="form-field">
+                <label>Телефон</label>
+                <input type="tel" id="settingsPhone" placeholder="+375 XX XXX-XX-XX">
+            </div>
+            
+            <div class="form-field">
+                <label>Аватар</label>
+                <div class="user-avatar" id="avatarPreview" style="margin-bottom: 12px; cursor: pointer;">
+                    <span id="settingsAvatarText">👤</span>
+                    <img id="settingsAvatarImg" style="display:none; width:100%; height:100%; object-fit:cover;">
+                </div>
+                <div class="avatar-options">
+                    <div class="avatar-option" id="chooseEmojiBtn">😊 Эмодзи</div>
+                    <div class="avatar-option" id="takePhotoBtn">📸 Снять фото</div>
+                    <div class="avatar-option" id="choosePhotoBtn">🖼️ Из галереи</div>
+                    <div class="avatar-option" id="removeAvatarBtn" style="color: #ff3b30;">🗑️ Удалить</div>
+                </div>
+                <div id="emojiSelector" class="emoji-grid hidden">
+                    <div class="emoji-item" data-emoji="👤">👤</div>
+                    <div class="emoji-item" data-emoji="👨">👨</div>
+                    <div class="emoji-item" data-emoji="👩">👩</div>
+                    <div class="emoji-item" data-emoji="🧑">🧑</div>
+                    <div class="emoji-item" data-emoji="🖨️">🖨️</div>
+                    <div class="emoji-item" data-emoji="⭐">⭐</div>
+                    <div class="emoji-item" data-emoji="🔥">🔥</div>
+                    <div class="emoji-item" data-emoji="👍">👍</div>
+                    <div class="emoji-item" data-emoji="😎">😎</div>
+                    <div class="emoji-item" data-emoji="🥇">🥇</div>
+                    <div class="emoji-item" data-emoji="🎯">🎯</div>
+                    <div class="emoji-item" data-emoji="💪">💪</div>
+                </div>
+            </div>
+            
+            <div class="form-field">
+                <label>Тема оформления</label>
+                <div class="theme-option" data-theme="light">
+                    <span>☀️ Светлая</span>
+                    <span id="themeLightCheck" style="color: #34c759;">✓</span>
+                </div>
+                <div class="theme-option" data-theme="dark">
+                    <span>🌙 Тёмная</span>
+                    <span id="themeDarkCheck" style="color: #34c759; display: none;">✓</span>
+                </div>
+            </div>
+            
+            <button class="send-btn" id="saveSettingsBtn">💾 Сохранить изменения</button>
+            <div id="settingsStatus" class="status"></div>
+        </div>
+
+        <div id="orderDetail" class="hidden">
+            <button class="back-button" id="backFromDetail">← Назад</button>
+            <div id="detailContainer"></div>
+        </div>
+    </div>
+
+    <div id="cropperModal" class="modal" style="display: none;">
+        <img id="cropperImage" style="max-width: 90vw; max-height: 60vh;">
+        <div class="modal-buttons">
+            <button class="modal-btn modal-btn-cancel" id="cancelCrop">Отмена</button>
+            <button class="modal-btn modal-btn-save" id="saveCrop">Сохранить</button>
         </div>
     </div>
 
@@ -325,218 +674,474 @@
         tg.ready();
         tg.expand();
 
-        // Эмодзи и названия статусов
-        const statusEmoji = {
-            'новый': '🟡',
-            'принят': '🟢',
-            'отказ': '🔴',
-            'подготовка модели': '🟠',
-            'цена выставлена': '💰',
-            'ожидает оплаты': '💵',
-            'оплачено': '✅',
-            'подготовка принтера': '🔧',
-            'печать': '🖨️',
-            'готова': '🎉'
+        const BOT_URL = 'https://ТВОЙ-БОТ.onrender.com';
+
+        let userProfile = { name: '', phone: '', avatar: '👤', registered: false, theme: 'light', avatarImage: null };
+        let cropper = null;
+
+        function formatPhone(input) {
+            let value = input.value.replace(/[^0-9]/g, '');
+            if (!value.startsWith('375')) value = '375' + value;
+            let formatted = '+375';
+            if (value.length > 3) formatted += ' ' + value.substring(3, 5);
+            if (value.length > 5) formatted += ' ' + value.substring(5, 8);
+            if (value.length > 8) formatted += '-' + value.substring(8, 10);
+            if (value.length > 10) formatted += '-' + value.substring(10, 12);
+            input.value = formatted.trim();
+        }
+
+        function setupPhoneField(phoneInput) {
+            if (!phoneInput) return;
+            phoneInput.addEventListener('focus', function() {
+                if (!this.value || this.value === '' || this.value === '+375') this.value = '+375';
+            });
+            phoneInput.addEventListener('input', function() { formatPhone(this); });
+        }
+
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.body.classList.remove('light', 'dark');
+            document.body.classList.add(savedTheme);
+            userProfile.theme = savedTheme;
+        }
+
+        function saveTheme(theme) {
+            localStorage.setItem('theme', theme);
+            loadTheme();
+        }
+
+        function updateAvatarDisplay() {
+            const avatarText = document.getElementById('avatarText');
+            const avatarImg = document.getElementById('avatarImg');
+            const settingsAvatarText = document.getElementById('settingsAvatarText');
+            const settingsAvatarImg = document.getElementById('settingsAvatarImg');
+            
+            if (userProfile.avatarImage) {
+                avatarText.style.display = 'none';
+                avatarImg.style.display = 'block';
+                avatarImg.src = userProfile.avatarImage;
+                settingsAvatarText.style.display = 'none';
+                settingsAvatarImg.style.display = 'block';
+                settingsAvatarImg.src = userProfile.avatarImage;
+            } else {
+                avatarText.style.display = 'flex';
+                avatarImg.style.display = 'none';
+                avatarText.textContent = userProfile.avatar || '👤';
+                settingsAvatarText.style.display = 'flex';
+                settingsAvatarImg.style.display = 'none';
+                settingsAvatarText.textContent = userProfile.avatar || '👤';
+            }
+        }
+
+        function loadProfile() {
+            const saved = localStorage.getItem('user_profile');
+            if (saved) {
+                userProfile = JSON.parse(saved);
+                if (userProfile.registered) {
+                    document.getElementById('registerScreen').classList.add('hidden');
+                    document.getElementById('mainMenu').classList.remove('hidden');
+                    document.getElementById('userName').textContent = userProfile.name;
+                    document.getElementById('userPhone').textContent = userProfile.phone;
+                    updateAvatarDisplay();
+                } else {
+                    showRegister();
+                }
+            } else {
+                showRegister();
+            }
+            loadTheme();
+        }
+
+        function showRegister() {
+            document.getElementById('registerScreen').classList.remove('hidden');
+            document.getElementById('mainMenu').classList.add('hidden');
+            document.getElementById('orderForm').classList.add('hidden');
+            document.getElementById('historyList').classList.add('hidden');
+            document.getElementById('settingsPanel').classList.add('hidden');
+            document.getElementById('orderDetail').classList.add('hidden');
+            setupPhoneField(document.getElementById('regPhone'));
+        }
+
+        function saveProfile(name, phone, avatar, avatarImage) {
+            userProfile = { ...userProfile, name: name, phone: phone, avatar: avatar, avatarImage: avatarImage, registered: true };
+            localStorage.setItem('user_profile', JSON.stringify(userProfile));
+            document.getElementById('userName').textContent = name;
+            document.getElementById('userPhone').textContent = phone;
+            updateAvatarDisplay();
+            document.getElementById('registerScreen').classList.add('hidden');
+            document.getElementById('mainMenu').classList.remove('hidden');
+        }
+
+        document.getElementById('registerBtn').onclick = () => {
+            const name = document.getElementById('regName').value.trim();
+            let phone = document.getElementById('regPhone').value.trim();
+            const statusDiv = document.getElementById('regStatus');
+            
+            if (!phone.startsWith('+375')) phone = '+375' + phone.replace(/[^0-9]/g, '');
+            if (!name || !phone || phone === '+375') {
+                statusDiv.textContent = '❌ Заполните все поля';
+                statusDiv.className = 'status error';
+                setTimeout(() => statusDiv.className = 'status', 3000);
+                return;
+            }
+            
+            saveProfile(name, phone, '👤', null);
+            statusDiv.textContent = '✅ Профиль сохранён!';
+            statusDiv.className = 'status success';
+            setTimeout(() => statusDiv.className = 'status', 2000);
         };
 
-        const statusName = {
-            'новый': 'Ожидает',
-            'принят': 'Принят',
-            'отказ': 'Отклонён',
-            'подготовка модели': 'Подготовка',
-            'цена выставлена': 'Цена выставлена',
-            'ожидает оплаты': 'Ждём оплату',
-            'оплачено': 'Оплачено',
-            'подготовка принтера': 'Готовим принтер',
-            'печать': 'Печатаем',
-            'готова': 'Готов к выдаче'
+        function openSettings() {
+            document.getElementById('settingsName').value = userProfile.name;
+            document.getElementById('settingsPhone').value = userProfile.phone;
+            setupPhoneField(document.getElementById('settingsPhone'));
+            document.getElementById('emojiSelector').classList.add('hidden');
+            
+            document.getElementById('themeLightCheck').style.display = userProfile.theme === 'light' ? 'inline' : 'none';
+            document.getElementById('themeDarkCheck').style.display = userProfile.theme === 'dark' ? 'inline' : 'none';
+            
+            document.querySelectorAll('[data-theme]').forEach(el => {
+                el.onclick = () => {
+                    const theme = el.dataset.theme;
+                    userProfile.theme = theme;
+                    saveTheme(theme);
+                    document.getElementById('themeLightCheck').style.display = theme === 'light' ? 'inline' : 'none';
+                    document.getElementById('themeDarkCheck').style.display = theme === 'dark' ? 'inline' : 'none';
+                };
+            });
+            
+            document.getElementById('mainMenu').classList.add('hidden');
+            document.getElementById('settingsPanel').classList.remove('hidden');
+        }
+
+        document.getElementById('chooseEmojiBtn').onclick = () => {
+            const selector = document.getElementById('emojiSelector');
+            selector.classList.toggle('hidden');
+        };
+        
+        document.querySelectorAll('.emoji-item').forEach(emoji => {
+            emoji.onclick = () => {
+                const selectedEmoji = emoji.dataset.emoji;
+                userProfile.avatar = selectedEmoji;
+                userProfile.avatarImage = null;
+                updateAvatarDisplay();
+                document.getElementById('emojiSelector').classList.add('hidden');
+            };
+        });
+
+        document.getElementById('takePhotoBtn').onclick = () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.capture = 'environment';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) openCropper(file);
+            };
+            input.click();
+        };
+
+        document.getElementById('choosePhotoBtn').onclick = () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/jpeg,image/png,image/jpg';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) openCropper(file);
+            };
+            input.click();
+        };
+
+        document.getElementById('removeAvatarBtn').onclick = () => {
+            userProfile.avatar = '👤';
+            userProfile.avatarImage = null;
+            updateAvatarDisplay();
+        };
+
+        function openCropper(file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = document.getElementById('cropperImage');
+                img.src = event.target.result;
+                document.getElementById('cropperModal').style.display = 'flex';
+                if (cropper) cropper.destroy();
+                cropper = new Cropper(img, {
+                    aspectRatio: 1,
+                    viewMode: 1,
+                    dragMode: 'move',
+                    autoCropArea: 1,
+                    cropBoxMovable: true,
+                    cropBoxResizable: true,
+                    zoomable: true,
+                    zoomOnWheel: true
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+
+        document.getElementById('cancelCrop').onclick = () => {
+            document.getElementById('cropperModal').style.display = 'none';
+            if (cropper) cropper.destroy();
+        };
+
+        document.getElementById('saveCrop').onclick = () => {
+            if (cropper) {
+                const canvas = cropper.getCroppedCanvas({ width: 300, height: 300 });
+                const croppedImage = canvas.toDataURL('image/jpeg', 0.9);
+                userProfile.avatarImage = croppedImage;
+                userProfile.avatar = null;
+                updateAvatarDisplay();
+                document.getElementById('cropperModal').style.display = 'none';
+                cropper.destroy();
+            }
+        };
+
+        document.getElementById('saveSettingsBtn').onclick = () => {
+            const newName = document.getElementById('settingsName').value.trim();
+            let newPhone = document.getElementById('settingsPhone').value.trim();
+            if (!newPhone.startsWith('+375')) newPhone = '+375' + newPhone.replace(/[^0-9]/g, '');
+            
+            if (!newName || !newPhone) {
+                document.getElementById('settingsStatus').textContent = '❌ Заполните поля';
+                document.getElementById('settingsStatus').className = 'status error';
+                setTimeout(() => document.getElementById('settingsStatus').className = 'status', 3000);
+                return;
+            }
+            
+            userProfile.name = newName;
+            userProfile.phone = newPhone;
+            localStorage.setItem('user_profile', JSON.stringify(userProfile));
+            document.getElementById('userName').textContent = newName;
+            document.getElementById('userPhone').textContent = newPhone;
+            
+            document.getElementById('settingsStatus').textContent = '✅ Профиль обновлён!';
+            document.getElementById('settingsStatus').className = 'status success';
+            setTimeout(() => {
+                document.getElementById('settingsStatus').className = 'status';
+                document.getElementById('settingsPanel').classList.add('hidden');
+                document.getElementById('mainMenu').classList.remove('hidden');
+            }, 1500);
+        };
+
+        const mainMenu = document.getElementById('mainMenu');
+        const orderFormDiv = document.getElementById('orderForm');
+        const historyListDiv = document.getElementById('historyList');
+        const orderDetailDiv = document.getElementById('orderDetail');
+        const settingsPanel = document.getElementById('settingsPanel');
+
+        document.querySelectorAll('[data-action="new"]').forEach(el => {
+            el.onclick = () => {
+                if (!userProfile.registered) { showRegister(); return; }
+                mainMenu.classList.add('hidden');
+                orderFormDiv.classList.remove('hidden');
+            };
+        });
+        document.querySelectorAll('[data-action="history"]').forEach(el => {
+            el.onclick = () => {
+                if (!userProfile.registered) { showRegister(); return; }
+                mainMenu.classList.add('hidden');
+                historyListDiv.classList.remove('hidden');
+                loadOrders();
+            };
+        });
+        document.querySelectorAll('[data-action="settings"]').forEach(el => {
+            el.onclick = () => {
+                if (!userProfile.registered) { showRegister(); return; }
+                openSettings();
+            };
+        });
+
+        document.getElementById('backToMenu').onclick = () => {
+            orderFormDiv.classList.add('hidden');
+            mainMenu.classList.remove('hidden');
+        };
+        document.getElementById('backFromHistory').onclick = () => {
+            historyListDiv.classList.add('hidden');
+            mainMenu.classList.remove('hidden');
+        };
+        document.getElementById('backFromSettings').onclick = () => {
+            settingsPanel.classList.add('hidden');
+            mainMenu.classList.remove('hidden');
+        };
+        document.getElementById('backFromDetail').onclick = () => {
+            orderDetailDiv.classList.add('hidden');
+            historyListDiv.classList.remove('hidden');
+            loadOrders();
         };
 
         let quantity = 1;
-        const user = tg.initDataUnsafe?.user || {};
-        const BASE_URL = 'https://ТВОЙ_САЙТ.netlify.app'; // ← ЗАМЕНИ НА СВОЙ АДРЕС!
-        const BOT_API_URL = 'https://ТВОЙ-БОТ.onrender.com'; // ← ЗАМЕНИ НА АДРЕС ТВОЕГО БОТА
-
-        // Элементы
-        const quantitySpan = document.getElementById('quantityValue');
-        const minusBtn = document.getElementById('minusBtn');
-        const plusBtn = document.getElementById('plusBtn');
-        const submitBtn = document.getElementById('submitBtn');
-        const statusMsg = document.getElementById('statusMsg');
-        const loadingBar = document.getElementById('loadingBar');
-
-        // Управление количеством
-        minusBtn.onclick = () => {
-            if (quantity > 1) {
-                quantity--;
-                quantitySpan.textContent = quantity;
-                animateButton(minusBtn);
-            }
+        document.getElementById('minusQty').onclick = () => {
+            if (quantity > 1) { quantity--; document.getElementById('qtyValue').textContent = quantity; }
+        };
+        document.getElementById('plusQty').onclick = () => {
+            quantity++; document.getElementById('qtyValue').textContent = quantity;
         };
 
-        plusBtn.onclick = () => {
-            quantity++;
-            quantitySpan.textContent = quantity;
-            animateButton(plusBtn);
+        let selectedFile = null;
+        const fileArea = document.getElementById('fileArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileNameSpan = document.getElementById('fileName');
+        const removeFileBtn = document.getElementById('removeFile');
+
+        fileArea.onclick = () => fileInput.click();
+        fileArea.ondragover = (e) => { e.preventDefault(); fileArea.style.borderColor = '#007aff'; };
+        fileArea.ondragleave = () => fileArea.style.borderColor = '';
+        fileArea.ondrop = (e) => {
+            e.preventDefault();
+            fileArea.style.borderColor = '';
+            if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+        };
+        fileInput.onchange = (e) => { if (e.target.files[0]) handleFile(e.target.files[0]); };
+
+        function handleFile(file) {
+            selectedFile = file;
+            fileNameSpan.textContent = file.name;
+            fileInfo.classList.remove('hidden');
+            fileArea.style.display = 'none';
+        }
+
+        removeFileBtn.onclick = () => {
+            selectedFile = null;
+            fileInfo.classList.add('hidden');
+            fileArea.style.display = 'block';
+            fileInput.value = '';
         };
 
-        function animateButton(btn) {
-            btn.style.transform = 'scale(0.95)';
-            setTimeout(() => { btn.style.transform = ''; }, 100);
-        }
+        const sendOrderBtn = document.getElementById('sendOrderBtn');
+        const formStatus = document.getElementById('formStatus');
 
-        function showLoading() {
-            loadingBar.style.width = '100%';
-            setTimeout(() => { loadingBar.style.width = '0%'; }, 500);
-        }
-
-        function showStatus(text, isError = false) {
-            statusMsg.textContent = text;
-            statusMsg.className = `status-msg ${isError ? 'error' : 'success'}`;
-            setTimeout(() => {
-                statusMsg.className = 'status-msg';
-            }, 4000);
-        }
-
-        // Отправка заказа
-        submitBtn.onclick = async () => {
-            const name = document.getElementById('name').value.trim();
-            const phone = document.getElementById('phone').value.trim();
-            const model = document.getElementById('model').value.trim();
-
-            if (!name || !phone || !model) {
-                showStatus('❌ Заполните все поля', true);
+        sendOrderBtn.onclick = async () => {
+            const model = document.getElementById('modelDesc').value.trim();
+            if (!model) {
+                formStatus.textContent = '❌ Опишите, что нужно напечатать';
+                formStatus.className = 'status error';
+                setTimeout(() => formStatus.className = 'status', 3000);
                 return;
             }
 
-            submitBtn.disabled = true;
-            submitBtn.textContent = '⏳ Отправляем...';
-            showLoading();
+            sendOrderBtn.disabled = true;
+            sendOrderBtn.textContent = '⏳ Отправка...';
+            
+            const user = tg.initDataUnsafe?.user || {};
+            const formData = new FormData();
+            formData.append('user_id', user.id || 0);
+            formData.append('username', user.username || '');
+            formData.append('name', userProfile.name);
+            formData.append('phone', userProfile.phone);
+            formData.append('model', model);
+            formData.append('quantity', quantity);
+            if (selectedFile) formData.append('file', selectedFile);
 
             try {
-                const response = await fetch(`${BOT_API_URL}/webapp_order`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        user_id: user.id,
-                        username: user.username || '',
-                        name: name,
-                        phone: phone,
-                        model: model,
-                        quantity: quantity
-                    })
-                });
-
+                const response = await fetch(`${BOT_URL}/webapp_order_file`, { method: 'POST', body: formData });
                 const result = await response.json();
-
                 if (result.ok) {
-                    showStatus('✅ Заказ отправлен! Менеджер свяжется с вами.');
-                    document.getElementById('name').value = '';
-                    document.getElementById('phone').value = '';
-                    document.getElementById('model').value = '';
+                    formStatus.textContent = '✅ Заказ отправлен!';
+                    formStatus.className = 'status success';
+                    document.getElementById('modelDesc').value = '';
                     quantity = 1;
-                    quantitySpan.textContent = '1';
-                    tg.MainButton.setText('Закрыть');
-                    tg.MainButton.show();
+                    document.getElementById('qtyValue').textContent = '1';
+                    selectedFile = null;
+                    fileInfo.classList.add('hidden');
+                    fileArea.style.display = 'block';
+                    setTimeout(() => {
+                        orderFormDiv.classList.add('hidden');
+                        mainMenu.classList.remove('hidden');
+                        formStatus.className = 'status';
+                    }, 1500);
                 } else {
-                    showStatus('❌ Ошибка: ' + (result.error || 'попробуйте позже'), true);
+                    formStatus.textContent = '❌ Ошибка: ' + (result.error || 'попробуйте позже');
+                    formStatus.className = 'status error';
                 }
             } catch (error) {
-                showStatus('❌ Ошибка соединения. Проверьте интернет.', true);
+                formStatus.textContent = '❌ Ошибка соединения';
+                formStatus.className = 'status error';
             } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = '✅ Отправить заказ';
+                sendOrderBtn.disabled = false;
+                sendOrderBtn.textContent = '✅ Отправить заказ';
+                setTimeout(() => { if (formStatus.className !== 'status success') formStatus.className = 'status'; }, 3000);
             }
         };
 
-        // Загрузка истории заказов
         async function loadOrders() {
-            const container = document.getElementById('ordersList');
-            container.innerHTML = '<div class="empty-state"><div class="icon">⏳</div><div>Загрузка...</div></div>';
-
+            const container = document.getElementById('ordersContainer');
+            container.innerHTML = '<div class="loading">⏳ Загрузка...</div>';
+            const user = tg.initDataUnsafe?.user || {};
             try {
-                const response = await fetch(`${BOT_API_URL}/webapp_orders`, {
+                const response = await fetch(`${BOT_URL}/webapp_orders`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ user_id: user.id })
                 });
                 const data = await response.json();
-
                 if (data.orders && data.orders.length > 0) {
                     container.innerHTML = '';
                     data.orders.forEach(order => {
-                        const emoji = statusEmoji[order.status] || '⚪';
-                        const status = statusName[order.status] || order.status;
+                        const statusClass = getStatusClass(order.status);
+                        const statusName = getStatusName(order.status);
                         const total = order.total_price || 0;
-                        const card = document.createElement('div');
-                        card.className = 'order-card';
-                        card.innerHTML = `
-                            <div class="order-header">
-                                <span class="order-id">№${order.id}</span>
-                                <span class="order-status status-${order.status.replace(/ /g, '_')}">${emoji} ${status}</span>
+                        const div = document.createElement('div');
+                        div.className = 'history-card';
+                        div.onclick = () => showOrderDetail(order);
+                        div.innerHTML = `
+                            <div class="history-header">
+                                <span class="history-id">Заказ №${order.id}</span>
+                                <span class="history-status status-${statusClass}">${statusName}</span>
                             </div>
-                            <div class="order-details">
-                                <div>📦 ${escapeHtml(order.model_name)}</div>
-                                <div>🔢 ${order.quantity} шт.</div>
-                                ${total > 0 ? `<div>💰 ${total.toLocaleString()} руб.</div>` : ''}
-                                <div>📅 ${new Date(order.created_at).toLocaleDateString()}</div>
-                            </div>
+                            <div>📦 ${order.model_name.length > 30 ? order.model_name.substring(0,30)+'...' : order.model_name}</div>
+                            <div>🔢 ${order.quantity} шт.</div>
+                            ${total > 0 ? `<div>💰 ${total.toLocaleString()} руб.</div>` : ''}
+                            <div class="history-details">📅 ${new Date(order.created_at).toLocaleDateString()}</div>
                         `;
-                        container.appendChild(card);
+                        container.appendChild(div);
                     });
                 } else {
-                    container.innerHTML = '<div class="empty-state"><div class="icon">📭</div><div>У вас пока нет заказов</div><div style="font-size: 12px; margin-top: 8px;">Нажмите «Заказать», чтобы сделать первый заказ</div></div>';
+                    container.innerHTML = '<div class="loading">📭 У вас пока нет заказов</div>';
                 }
             } catch (error) {
-                container.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><div>Ошибка загрузки</div><div style="font-size: 12px;">Проверьте соединение</div></div>';
+                container.innerHTML = '<div class="loading">⚠️ Ошибка загрузки</div>';
             }
         }
 
-        function escapeHtml(str) {
-            return str.replace(/[&<>]/g, function(m) {
-                if (m === '&') return '&amp;';
-                if (m === '<') return '&lt;';
-                if (m === '>') return '&gt;';
-                return m;
-            });
+        function showOrderDetail(order) {
+            const container = document.getElementById('detailContainer');
+            const total = order.total_price || 0;
+            const statusName = getStatusName(order.status);
+            const statusClass = getStatusClass(order.status);
+            container.innerHTML = `
+                <div class="order-detail-card">
+                    <div class="detail-row"><span class="detail-label">Заказ №</span><span class="detail-value">${order.id}</span></div>
+                    <div class="detail-row"><span class="detail-label">Статус</span><span class="detail-value"><span class="history-status status-${statusClass}">${statusName}</span></span></div>
+                    <div class="detail-row"><span class="detail-label">Модель</span><span class="detail-value">${order.model_name}</span></div>
+                    <div class="detail-row"><span class="detail-label">Количество</span><span class="detail-value">${order.quantity} шт.</span></div>
+                    ${total > 0 ? `<div class="detail-row"><span class="detail-label">Сумма</span><span class="detail-value">${total.toLocaleString()} руб.</span></div>` : ''}
+                    <div class="detail-row"><span class="detail-label">Дата заказа</span><span class="detail-value">${new Date(order.created_at).toLocaleString()}</span></div>
+                </div>
+            `;
+            historyListDiv.classList.add('hidden');
+            orderDetailDiv.classList.remove('hidden');
         }
 
-        // Переключение вкладок
-        const tabs = document.querySelectorAll('.tab');
-        const orderTab = document.getElementById('orderTab');
-        const historyTab = document.getElementById('historyTab');
+        function getStatusClass(status) {
+            const map = { 'новый':'new', 'принят':'accepted', 'отказ':'rejected', 'подготовка модели':'preparing', 'цена выставлена':'preparing', 'ожидает оплаты наличными':'preparing', 'оплачено наличными':'paid', 'подготовка принтера':'preparing', 'печать':'printing', 'готова':'ready' };
+            return map[status] || 'new';
+        }
 
-        tabs.forEach(tab => {
-            tab.onclick = () => {
-                tabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                const tabName = tab.dataset.tab;
-                if (tabName === 'order') {
-                    orderTab.classList.remove('hidden');
-                    historyTab.classList.add('hidden');
-                } else {
-                    orderTab.classList.add('hidden');
-                    historyTab.classList.remove('hidden');
-                    loadOrders();
-                }
-            };
-        });
+        function getStatusName(status) {
+            const map = { 'новый':'🟡 Ожидает', 'принят':'🟢 Принят', 'отказ':'🔴 Отклонён', 'подготовка модели':'🟠 Подготовка', 'цена выставлена':'💰 Цена выставлена', 'ожидает оплаты наличными':'💵 Ждём оплату', 'оплачено наличными':'✅ Оплачено', 'подготовка принтера':'🔧 Готовим принтер', 'печать':'🖨️ Печатаем', 'готова':'🎉 Готов к выдаче' };
+            return map[status] || status;
+        }
 
-        // Кнопка закрытия
+        document.getElementById('userAvatar').onclick = () => {
+            if (userProfile.registered) {
+                openSettings();
+            }
+        };
+
+        loadProfile();
         tg.MainButton.setText('Закрыть');
         tg.MainButton.onClick(() => tg.close());
-
-        // Приветствие
-        setTimeout(() => {
-            if (user.first_name) {
-                const greeting = document.createElement('div');
-                greeting.style.cssText = 'text-align: center; margin-bottom: 20px; font-size: 14px; color: var(--tg-theme-hint-color);';
-                greeting.textContent = `👋 Здравствуйте, ${user.first_name}!`;
-                document.getElementById('orderTab').insertBefore(greeting, document.getElementById('orderTab').firstChild);
-                setTimeout(() => greeting.style.opacity = '0', 3000);
-                setTimeout(() => greeting.remove(), 3500);
-            }
-        }, 500);
     </script>
 </body>
 </html>
