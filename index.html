@@ -679,6 +679,17 @@
         let userProfile = { name: '', phone: '', avatar: '👤', registered: false, theme: 'light', avatarImage: null };
         let cropper = null;
 
+        // ========== ФУНКЦИЯ ДЛЯ ФОРМАТИРОВАНИЯ ДАТЫ ==========
+        function formatDate(dateString) {
+            if (!dateString) return 'Дата неизвестна';
+            const match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+            if (match) {
+                const [_, year, month, day, hour, minute, second] = match;
+                return `${day}.${month}.${year} ${hour}:${minute}`;
+            }
+            return dateString;
+        }
+
         function formatPhone(input) {
             let value = input.value.replace(/[^0-9]/g, '');
             if (!value.startsWith('375')) value = '375' + value;
@@ -1122,7 +1133,7 @@
                             <div>📦 ${order.model_name.length > 30 ? order.model_name.substring(0,30)+'...' : order.model_name}</div>
                             <div>🔢 ${order.quantity} шт.</div>
                             ${total > 0 ? `<div>💰 ${total.toLocaleString()} руб.</div>` : ''}
-                            <div class="history-details">📅 ${new Date(order.created_at).toLocaleString('ru-RU', {timeZone: 'Europe/Minsk'})}</div>
+                            <div class="history-details">📅 ${formatDate(order.created_at)}</div>
                         `;
                         container.appendChild(div);
                     });
@@ -1146,7 +1157,7 @@
                     <div class="detail-row"><span class="detail-label">Модель</span><span class="detail-value">${order.model_name}</span></div>
                     <div class="detail-row"><span class="detail-label">Количество</span><span class="detail-value">${order.quantity} шт.</span></div>
                     ${total > 0 ? `<div class="detail-row"><span class="detail-label">Сумма</span><span class="detail-value">${total.toLocaleString()} руб.</span></div>` : ''}
-                    <div class="detail-row"><span class="detail-label">Дата заказа</span><span class="detail-value">${new Date(order.created_at).toLocaleString('ru-RU', {timeZone: 'Europe/Minsk'})}</span></div>
+                    <div class="detail-row"><span class="detail-label">Дата заказа</span><span class="detail-value">${formatDate(order.created_at)}</span></div>
                 </div>
             `;
             historyListDiv.classList.add('hidden');
