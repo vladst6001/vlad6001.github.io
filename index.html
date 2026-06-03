@@ -396,7 +396,6 @@
             margin-bottom: 32px;
         }
 
-        /* Модальное окно для круглой обрезки - поверх всего */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -658,7 +657,6 @@
         </div>
     </div>
 
-    <!-- Модалка для круглой обрезки фото -->
     <div id="cropperModal" class="modal-overlay" style="display: none;">
         <div class="modal-content">
             <div class="cropper-container-custom">
@@ -671,7 +669,6 @@
         </div>
     </div>
 
-    <!-- Модалка для ввода эмодзи -->
     <div id="emojiModal" class="modal-overlay" style="display: none;">
         <div class="modal-content">
             <h3>Введите эмодзи</h3>
@@ -693,24 +690,23 @@
         let userProfile = { name: '', phone: '', avatar: '👤', registered: false, theme: 'light', avatarImage: null };
         let cropper = null;
 
-        // ========== ИСПРАВЛЕННАЯ ФУНКЦИЯ ДЛЯ ФОРМАТИРОВАНИЯ ДАТЫ ==========
         function formatDate(dateString) {
             if (!dateString || dateString === 'null' || dateString === 'None') {
-                return 'Дата неизвестна';
+                return 'Дата не указана';
             }
-            // Парсим ISO строку с секундами
             let match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
             if (match) {
                 const [_, year, month, day, hour, minute] = match;
                 return `${day}.${month}.${year} ${hour}:${minute}`;
             }
-            // Парсим ISO строку без секунд
             match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
             if (match) {
                 const [_, year, month, day, hour, minute] = match;
                 return `${day}.${month}.${year} ${hour}:${minute}`;
             }
-            // Если ничего не подошло — показываем как есть
+            if (dateString.match(/^\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}/)) {
+                return dateString;
+            }
             return dateString;
         }
 
@@ -752,12 +748,29 @@
             const settingsAvatarImg = document.getElementById('settingsAvatarImg');
             
             if (userProfile.avatarImage) {
-                avatarText.style.display = 'none';
-                avatarImg.style.display = 'block';
-                avatarImg.src = userProfile.avatarImage;
-                settingsAvatarText.style.display = 'none';
-                settingsAvatarImg.style.display = 'block';
-                settingsAvatarImg.src = userProfile.avatarImage;
+                if (userProfile.avatarImage.startsWith('/avatars/')) {
+                    const fullUrl = BOT_URL + userProfile.avatarImage;
+                    avatarText.style.display = 'none';
+                    avatarImg.style.display = 'block';
+                    avatarImg.src = fullUrl;
+                    settingsAvatarText.style.display = 'none';
+                    settingsAvatarImg.style.display = 'block';
+                    settingsAvatarImg.src = fullUrl;
+                } else if (userProfile.avatarImage.startsWith('data:')) {
+                    avatarText.style.display = 'none';
+                    avatarImg.style.display = 'block';
+                    avatarImg.src = userProfile.avatarImage;
+                    settingsAvatarText.style.display = 'none';
+                    settingsAvatarImg.style.display = 'block';
+                    settingsAvatarImg.src = userProfile.avatarImage;
+                } else {
+                    avatarText.style.display = 'none';
+                    avatarImg.style.display = 'block';
+                    avatarImg.src = userProfile.avatarImage;
+                    settingsAvatarText.style.display = 'none';
+                    settingsAvatarImg.style.display = 'block';
+                    settingsAvatarImg.src = userProfile.avatarImage;
+                }
             } else {
                 avatarText.style.display = 'flex';
                 avatarImg.style.display = 'none';
@@ -773,11 +786,12 @@
             if (saved) {
                 userProfile = JSON.parse(saved);
                 if (userProfile.registered) {
-                    document.getElementById('registerScreen').classList.add('hidden');
-                    document.getElementById('mainMenu').classList.remove('hidden');
+                    updateAvatarDisplay();
                     document.getElementById('userName').textContent = userProfile.name;
                     document.getElementById('userPhone').textContent = userProfile.phone;
-                    updateAvatarDisplay();
+                    document.getElementById('registerScreen').classList.add('hidden');
+                    document.getElementById('mainMenu').classList.remove('hidden');
+                    loadProfileFromServer();
                 } else {
                     showRegister();
                 }
@@ -785,6 +799,37 @@
                 showRegister();
             }
             loadTheme();
+        }
+
+        async function loadProfileFromServer() {
+            const user = tg.initDataUnsafe?.user || {};
+            if (!user.id) return;
+            
+            try {
+                const response = await fetch(`${BOT_URL}/get_profile`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: user.id })
+                });
+                const data = await response.json();
+                if (data.ok && data.profile) {
+                    if (data.profile.avatar_url) {
+                        userProfile.avatarImage = data.profile.avatar_url;
+                        userProfile.avatar = null;
+                    }
+                    if (data.profile.name) userProfile.name = data.profile.name;
+                    if (data.profile.phone) userProfile.phone = data.profile.phone;
+                    userProfile.registered = true;
+                    localStorage.setItem('user_profile', JSON.stringify(userProfile));
+                    updateAvatarDisplay();
+                    document.getElementById('userName').textContent = userProfile.name;
+                    document.getElementById('userPhone').textContent = userProfile.phone;
+                    document.getElementById('registerScreen').classList.add('hidden');
+                    document.getElementById('mainMenu').classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки профиля:', error);
+            }
         }
 
         function showRegister() {
@@ -805,6 +850,18 @@
             updateAvatarDisplay();
             document.getElementById('registerScreen').classList.add('hidden');
             document.getElementById('mainMenu').classList.remove('hidden');
+            
+            // Сохраняем на сервере
+            const user = tg.initDataUnsafe?.user || {};
+            fetch(`${BOT_URL}/save_profile`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: user.id,
+                    name: name,
+                    phone: phone
+                })
+            }).catch(e => console.error('Ошибка сохранения профиля:', e));
         }
 
         document.getElementById('registerBtn').onclick = () => {
@@ -848,7 +905,6 @@
             document.getElementById('settingsPanel').classList.remove('hidden');
         }
 
-        // Открытие модалки для ввода эмодзи
         document.getElementById('emojiInputBtn').onclick = () => {
             document.getElementById('emojiModal').style.display = 'flex';
             document.getElementById('emojiInput').value = '';
@@ -865,18 +921,17 @@
                 userProfile.avatar = emoji;
                 userProfile.avatarImage = null;
                 updateAvatarDisplay();
+                localStorage.setItem('user_profile', JSON.stringify(userProfile));
             }
             document.getElementById('emojiModal').style.display = 'none';
         };
 
-        // Закрытие модалки по клику на оверлей
         document.getElementById('emojiModal').onclick = (e) => {
             if (e.target === document.getElementById('emojiModal')) {
                 document.getElementById('emojiModal').style.display = 'none';
             }
         };
 
-        // Выбор фото
         document.getElementById('choosePhotoBtn').onclick = () => {
             const input = document.createElement('input');
             input.type = 'file';
@@ -892,6 +947,7 @@
             userProfile.avatar = '👤';
             userProfile.avatarImage = null;
             updateAvatarDisplay();
+            localStorage.setItem('user_profile', JSON.stringify(userProfile));
         };
 
         function openCropper(file) {
@@ -934,23 +990,41 @@
             }
         };
 
-        document.getElementById('saveCrop').onclick = () => {
+        document.getElementById('saveCrop').onclick = async () => {
             if (cropper) {
                 const canvas = cropper.getCroppedCanvas({
                     width: 300,
                     height: 300
                 });
                 const croppedImage = canvas.toDataURL('image/jpeg', 0.9);
-                userProfile.avatarImage = croppedImage;
-                userProfile.avatar = null;
-                updateAvatarDisplay();
+                
+                const user = tg.initDataUnsafe?.user || {};
+                try {
+                    const response = await fetch(`${BOT_URL}/upload_avatar`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            user_id: user.id,
+                            image_data: croppedImage
+                        })
+                    });
+                    const result = await response.json();
+                    if (result.ok) {
+                        userProfile.avatarImage = result.avatar_url;
+                        userProfile.avatar = null;
+                        updateAvatarDisplay();
+                        localStorage.setItem('user_profile', JSON.stringify(userProfile));
+                    }
+                } catch (error) {
+                    console.error('Ошибка загрузки фото:', error);
+                }
+                
                 document.getElementById('cropperModal').style.display = 'none';
                 cropper.destroy();
                 cropper = null;
             }
         };
 
-        // Закрытие модалки по клику на оверлей
         document.getElementById('cropperModal').onclick = (e) => {
             if (e.target === document.getElementById('cropperModal')) {
                 document.getElementById('cropperModal').style.display = 'none';
@@ -978,6 +1052,17 @@
             localStorage.setItem('user_profile', JSON.stringify(userProfile));
             document.getElementById('userName').textContent = newName;
             document.getElementById('userPhone').textContent = newPhone;
+            
+            const user = tg.initDataUnsafe?.user || {};
+            fetch(`${BOT_URL}/save_profile`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: user.id,
+                    name: newName,
+                    phone: newPhone
+                })
+            }).catch(e => console.error('Ошибка сохранения профиля:', e));
             
             document.getElementById('settingsStatus').textContent = '✅ Профиль обновлён!';
             document.getElementById('settingsStatus').className = 'status success';
