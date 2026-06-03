@@ -157,10 +157,18 @@
 
         function formatDate(dateString) {
             if (!dateString || dateString === 'null' || dateString === 'None' || dateString === 'Дата не указана') return 'Дата не указана';
-            let match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
-            if (match) { const [_, year, month, day, hour, minute] = match; return `${day}.${month}.${year} ${hour}:${minute}`; }
-            match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-            if (match) { const [_, year, month, day, hour, minute] = match; return `${day}.${month}.${year} ${hour}:${minute}`; }
+            // Формат: 2026-06-03 14:30:00
+            let match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})\s(\d{2}):(\d{2}):(\d{2})/);
+            if (match) {
+                const [_, year, month, day, hour, minute] = match;
+                return `${day}.${month}.${year} ${hour}:${minute}`;
+            }
+            // Старый формат ISO
+            match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+            if (match) {
+                const [_, year, month, day, hour, minute] = match;
+                return `${day}.${month}.${year} ${hour}:${minute}`;
+            }
             return dateString;
         }
 
@@ -359,25 +367,70 @@
             }, 1500);
         };
 
+        // ========== НАВИГАЦИЯ (ИСПРАВЛЕНА) ==========
         const mainMenu = document.getElementById('mainMenu');
         const orderFormDiv = document.getElementById('orderForm');
         const historyListDiv = document.getElementById('historyList');
         const orderDetailDiv = document.getElementById('orderDetail');
         const settingsPanel = document.getElementById('settingsPanel');
 
+        function hideAllScreens() {
+            mainMenu.classList.add('hidden');
+            orderFormDiv.classList.add('hidden');
+            historyListDiv.classList.add('hidden');
+            orderDetailDiv.classList.add('hidden');
+            settingsPanel.classList.add('hidden');
+        }
+
+        function showMainMenu() {
+            hideAllScreens();
+            mainMenu.classList.remove('hidden');
+        }
+
         document.querySelectorAll('[data-action="new"]').forEach(el => {
-            el.onclick = () => { if (!userProfile.registered) { showRegister(); return; } mainMenu.classList.add('hidden'); orderFormDiv.classList.remove('hidden'); };
+            el.onclick = () => {
+                if (!userProfile.registered) { showRegister(); return; }
+                hideAllScreens();
+                orderFormDiv.classList.remove('hidden');
+            };
         });
+
         document.querySelectorAll('[data-action="history"]').forEach(el => {
-            el.onclick = () => { if (!userProfile.registered) { showRegister(); return; } mainMenu.classList.add('hidden'); historyListDiv.classList.remove('hidden'); loadOrders(); };
+            el.onclick = () => {
+                if (!userProfile.registered) { showRegister(); return; }
+                hideAllScreens();
+                historyListDiv.classList.remove('hidden');
+                loadOrders();
+            };
         });
+
         document.querySelectorAll('[data-action="settings"]').forEach(el => {
-            el.onclick = () => { if (!userProfile.registered) { showRegister(); return; } openSettings(); };
+            el.onclick = () => {
+                if (!userProfile.registered) { showRegister(); return; }
+                openSettings();
+            };
         });
-        document.getElementById('backToMenu').onclick = () => { orderFormDiv.classList.add('hidden'); mainMenu.classList.remove('hidden'); };
-        document.getElementById('backFromHistory').onclick = () => { historyListDiv.classList.add('hidden'); mainMenu.classList.remove('hidden'); };
-        document.getElementById('backFromSettings').onclick = () => { settingsPanel.classList.add('hidden'); mainMenu.classList.remove('hidden'); };
-        document.getElementById('backFromDetail').onclick = () => { orderDetailDiv.classList.add('hidden'); historyListDiv.classList.remove('hidden'); loadOrders(); };
+
+        document.getElementById('backToMenu').onclick = () => {
+            hideAllScreens();
+            mainMenu.classList.remove('hidden');
+        };
+
+        document.getElementById('backFromHistory').onclick = () => {
+            hideAllScreens();
+            mainMenu.classList.remove('hidden');
+        };
+
+        document.getElementById('backFromSettings').onclick = () => {
+            hideAllScreens();
+            mainMenu.classList.remove('hidden');
+        };
+
+        document.getElementById('backFromDetail').onclick = () => {
+            hideAllScreens();
+            historyListDiv.classList.remove('hidden');
+            loadOrders();
+        };
 
         let quantity = 1;
         document.getElementById('minusQty').onclick = () => { if (quantity > 1) { quantity--; document.getElementById('qtyValue').textContent = quantity; } };
@@ -503,6 +556,7 @@
                     container.innerHTML = '<div class="loading">📭 У вас пока нет заказов</div>';
                 }
             } catch (error) {
+                console.error('Ошибка загрузки заказов:', error);
                 container.innerHTML = '<div class="loading">⚠️ Ошибка загрузки</div>';
             }
         }
@@ -513,7 +567,7 @@
             const statusName = getStatusName(order.status);
             const statusClass = getStatusClass(order.status);
             container.innerHTML = `<div class="order-detail-card"><div class="detail-row"><span class="detail-label">Заказ №</span><span class="detail-value">${order.id}</span></div><div class="detail-row"><span class="detail-label">Статус</span><span class="detail-value"><span class="history-status status-${statusClass}">${statusName}</span></span></div><div class="detail-row"><span class="detail-label">Модель</span><span class="detail-value">${order.model_name}</span></div><div class="detail-row"><span class="detail-label">Количество</span><span class="detail-value">${order.quantity} шт.</span></div>${total > 0 ? `<div class="detail-row"><span class="detail-label">Сумма</span><span class="detail-value">${total.toLocaleString()} руб.</span></div>` : ''}<div class="detail-row"><span class="detail-label">Дата заказа</span><span class="detail-value">${formatDate(order.created_at)}</span></div></div>`;
-            historyListDiv.classList.add('hidden');
+            hideAllScreens();
             orderDetailDiv.classList.remove('hidden');
         }
 
