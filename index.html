@@ -96,7 +96,6 @@
     <div class="header"><h1>3Dprinti</h1></div>
 
     <div class="container">
-        <!-- Регистрация -->
         <div id="registerScreen" class="hidden">
             <div class="register-container">
                 <div class="register-title">Добро пожаловать в 3Dprinti!</div>
@@ -108,7 +107,6 @@
             </div>
         </div>
 
-        <!-- Главное меню -->
         <div id="mainMenu">
             <div class="user-card" id="userCard">
                 <div class="user-avatar" id="userAvatar"><span id="avatarText">👤</span><img id="avatarImg" style="display:none;"></div>
@@ -119,7 +117,6 @@
             <div class="menu-item" data-action="settings"><div class="menu-button"><div class="menu-button-left"><span class="menu-icon">⚙️</span><span>Настройки</span></div><span class="menu-arrow">→</span></div></div>
         </div>
 
-        <!-- Форма заказа -->
         <div id="orderForm" class="hidden">
             <button class="back-button" id="backToMenu">← Назад</button>
             <div class="form-field"><label>Что печатаем?</label><textarea id="modelDesc" rows="2" placeholder="Название модели, размеры, цвет..."></textarea></div>
@@ -129,10 +126,8 @@
             <div id="formStatus" class="status"></div>
         </div>
 
-        <!-- История заказов -->
         <div id="historyList" class="hidden"><button class="back-button" id="backFromHistory">← Назад</button><div id="ordersContainer"></div></div>
 
-        <!-- Настройки -->
         <div id="settingsPanel" class="hidden">
             <button class="back-button" id="backFromSettings">← Назад</button>
             <div class="form-field"><label>Имя</label><input type="text" id="settingsName" placeholder="Ваше имя"></div>
@@ -147,7 +142,6 @@
         <div id="orderDetail" class="hidden"><button class="back-button" id="backFromDetail">← Назад</button><div id="detailContainer"></div></div>
     </div>
 
-    <!-- Модалки -->
     <div id="cropperModal" class="modal-overlay" style="display: none;"><div class="modal-content"><div class="cropper-container-custom"><img id="cropperImage" style="max-width: 100%; max-height: 50vh;"></div><div class="modal-buttons"><button class="modal-btn modal-btn-cancel" id="cancelCrop">Отмена</button><button class="modal-btn modal-btn-save" id="saveCrop">Сохранить</button></div></div></div>
     <div id="emojiModal" class="modal-overlay" style="display: none;"><div class="modal-content"><h3>Введите эмодзи</h3><input type="text" id="emojiInput" class="emoji-input" placeholder="😊" autocomplete="off"><div class="modal-buttons"><button id="emojiCancelBtn" class="modal-btn modal-btn-cancel">Отмена</button><button id="emojiSaveBtn" class="modal-btn modal-btn-save">Сохранить</button></div></div></div>
 
@@ -161,14 +155,12 @@
         let userProfile = { name: '', phone: '', avatar: '👤', registered: false, theme: 'light', avatarImage: null };
         let cropper = null;
 
-        // Форматирование даты
         function formatDate(dateString) {
-            if (!dateString || dateString === 'null' || dateString === 'None') return 'Дата не указана';
+            if (!dateString || dateString === 'null' || dateString === 'None' || dateString === 'Дата не указана') return 'Дата не указана';
             let match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
             if (match) { const [_, year, month, day, hour, minute] = match; return `${day}.${month}.${year} ${hour}:${minute}`; }
             match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
             if (match) { const [_, year, month, day, hour, minute] = match; return `${day}.${month}.${year} ${hour}:${minute}`; }
-            if (dateString.match(/^\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}/)) return dateString;
             return dateString;
         }
 
@@ -441,7 +433,6 @@
                         selectedFile = null;
                         fileInfo.classList.add('hidden');
                         fileArea.style.display = 'block';
-                        // Принудительно обновляем историю
                         setTimeout(() => { loadOrders(); }, 1000);
                         setTimeout(() => {
                             orderFormDiv.classList.add('hidden');
