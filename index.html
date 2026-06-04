@@ -1,560 +1,1040 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>3Dprinti</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.js"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: var(--tg-theme-bg-color, #ffffff);
-            color: var(--tg-theme-text-color, #000000);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            padding: 0;
-            margin: 0;
-            transition: background 0.3s ease, color 0.3s ease;
-        }
-        body.dark { --tg-theme-bg-color: #1a1a1a; --tg-theme-text-color: #ffffff; --tg-theme-secondary-bg-color: #2c2c2e; --tg-theme-hint-color: #8e8e93; --tg-theme-button-color: #0a84ff; }
-        body.light { --tg-theme-bg-color: #ffffff; --tg-theme-text-color: #000000; --tg-theme-secondary-bg-color: #f9f9f9; --tg-theme-hint-color: #8e8e93; --tg-theme-button-color: #007aff; }
-        .header { background: var(--tg-theme-secondary-bg-color, #f0f0f0); padding: 14px 16px; border-bottom: 0.5px solid var(--tg-theme-hint-color, #c6c6c8); position: sticky; top: 0; z-index: 100; }
-        .header h1 { font-size: 20px; font-weight: 600; }
-        .container { max-width: 500px; margin: 0 auto; padding: 16px; padding-bottom: 80px; }
-        .menu-item { background: var(--tg-theme-secondary-bg-color, #f9f9f9); border-radius: 12px; margin-bottom: 8px; transition: all 0.1s ease; }
-        .menu-item:active { transform: scale(0.98); background: var(--tg-theme-hint-color, #e5e5ea); }
-        .menu-button { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; cursor: pointer; width: 100%; background: none; border: none; font-size: 16px; color: var(--tg-theme-text-color, #000000); font-family: inherit; }
-        .menu-button-left { display: flex; align-items: center; gap: 12px; }
-        .menu-icon { font-size: 22px; }
-        .menu-arrow { color: var(--tg-theme-hint-color, #8e8e93); font-size: 18px; }
-        .user-card { background: var(--tg-theme-secondary-bg-color, #f9f9f9); border-radius: 12px; padding: 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
-        .user-avatar { width: 56px; height: 56px; background: var(--tg-theme-button-color, #007aff); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.1s ease; position: relative; overflow: hidden; flex-shrink: 0; }
-        .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
-        .user-avatar span { font-size: 28px; }
-        .user-avatar:active { transform: scale(0.95); }
-        .user-info { flex: 1; }
-        .user-name { font-weight: 600; font-size: 16px; }
-        .user-phone { font-size: 13px; color: var(--tg-theme-hint-color, #8e8e93); }
-        .form-field { margin-bottom: 20px; }
-        .form-field label { display: block; font-size: 14px; color: var(--tg-theme-hint-color, #8e8e93); margin-bottom: 6px; }
-        .form-field input, .form-field textarea, .form-field select { width: 100%; padding: 14px; border: 0.5px solid var(--tg-theme-hint-color, #e5e5ea); border-radius: 12px; font-size: 16px; background: var(--tg-theme-secondary-bg-color, #ffffff); color: var(--tg-theme-text-color, #000000); font-family: inherit; }
-        .form-field input:focus, .form-field textarea:focus, .form-field select:focus { outline: none; border-color: var(--tg-theme-button-color, #007aff); }
-        .quantity-box { display: flex; align-items: center; gap: 12px; background: var(--tg-theme-secondary-bg-color, #f9f9f9); border-radius: 12px; padding: 8px; }
-        .quantity-btn { width: 44px; height: 44px; border-radius: 10px; background: var(--tg-theme-button-color, #007aff); color: white; border: none; font-size: 24px; font-weight: bold; cursor: pointer; }
-        .quantity-value { flex: 1; text-align: center; font-size: 24px; font-weight: 600; }
-        .send-btn { width: 100%; padding: 16px; background: var(--tg-theme-button-color, #007aff); color: var(--tg-theme-button-text-color, #ffffff); border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 16px; }
-        .send-btn:disabled { opacity: 0.6; }
-        .file-area { background: var(--tg-theme-secondary-bg-color, #f9f9f9); border: 1px dashed var(--tg-theme-hint-color, #c6c6c8); border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; }
-        .file-area:hover { border-color: var(--tg-theme-button-color, #007aff); background: var(--tg-theme-button-color, #007aff10); }
-        .file-info { background: var(--tg-theme-secondary-bg-color, #f0f0f0); border-radius: 12px; padding: 12px; margin-top: 12px; display: flex; align-items: center; justify-content: space-between; }
-        .remove-file { color: #ff3b30; cursor: pointer; font-size: 20px; }
-        .status { margin-top: 16px; padding: 12px; border-radius: 12px; text-align: center; font-size: 14px; display: none; }
-        .status.success { background: #34c75920; color: #34c759; display: block; }
-        .status.error { background: #ff3b3020; color: #ff3b30; display: block; }
-        .history-card { background: var(--tg-theme-secondary-bg-color, #f9f9f9); border-radius: 12px; padding: 14px; margin-bottom: 8px; cursor: pointer; transition: all 0.1s ease; }
-        .history-card:active { transform: scale(0.98); }
-        .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .history-id { font-weight: 600; }
-        .history-status { font-size: 12px; padding: 4px 10px; border-radius: 16px; }
-        .status-new { background: #ffcc0020; color: #ffcc00; }
-        .status-accepted { background: #34c75920; color: #34c759; }
-        .status-rejected { background: #ff3b3020; color: #ff3b30; }
-        .status-preparing { background: #ff950020; color: #ff9500; }
-        .status-paid { background: #34c75930; color: #34c759; }
-        .status-printing { background: #5856d620; color: #5856d6; }
-        .status-ready { background: #30b0c020; color: #30b0c0; }
-        .order-detail-card { background: var(--tg-theme-secondary-bg-color, #f9f9f9); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
-        .detail-row { display: flex; justify-content: space-between; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 0.5px solid var(--tg-theme-hint-color, #e5e5ea); }
-        .detail-label { color: var(--tg-theme-hint-color, #8e8e93); }
-        .detail-value { font-weight: 500; text-align: right; }
-        .back-button { background: none; border: none; font-size: 17px; color: var(--tg-theme-button-color, #007aff); padding: 12px 0; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
-        .hidden { display: none; }
-        .loading { text-align: center; padding: 40px; color: var(--tg-theme-hint-color, #8e8e93); }
-        .register-container { text-align: center; padding: 20px; }
-        .register-title { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
-        .register-sub { color: var(--tg-theme-hint-color, #8e8e93); margin-bottom: 32px; }
-        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.9); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
-        .modal-content { background: var(--tg-theme-bg-color, #ffffff); border-radius: 20px; padding: 20px; width: 90%; max-width: 350px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); }
-        .modal-content h3 { margin-bottom: 16px; text-align: center; }
-        .cropper-container-custom { width: 100%; max-width: 350px; margin: 0 auto; }
-        .cropper-view-box, .cropper-face { border-radius: 50%; }
-        .modal-buttons { display: flex; gap: 12px; margin-top: 20px; }
-        .modal-btn { flex: 1; padding: 12px 24px; border-radius: 12px; border: none; font-size: 16px; font-weight: 600; cursor: pointer; }
-        .modal-btn-cancel { background: #ff3b30; color: white; }
-        .modal-btn-save { background: #34c759; color: white; }
-        .avatar-options { display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap; }
-        .avatar-option { flex: 1; text-align: center; padding: 12px; background: var(--tg-theme-secondary-bg-color, #f0f0f0); border-radius: 12px; cursor: pointer; transition: all 0.1s ease; min-width: 80px; }
-        .avatar-option:active { transform: scale(0.95); }
-        .theme-option { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--tg-theme-secondary-bg-color, #f9f9f9); border-radius: 12px; margin-bottom: 8px; cursor: pointer; }
-        .emoji-input { width: 100%; padding: 14px; font-size: 28px; text-align: center; border-radius: 12px; border: 1px solid var(--tg-theme-hint-color); background: var(--tg-theme-secondary-bg-color); color: var(--tg-theme-text-color); }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>3Dprinti</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Unbounded:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+
+:root{
+  --ink:    #0b0c0f;
+  --paper:  #111318;
+  --card:   #181b22;
+  --edge:   rgba(255,255,255,0.06);
+  --txt:    #e8eaf2;
+  --muted:  #5a5e72;
+  --lime:   #c8f135;
+  --lime2:  #9ecc1e;
+  --red:    #ff4757;
+  --orange: #ff9500;
+  --blue:   #3d8bff;
+  --teal:   #00d4aa;
+  --r:      14px;
+  --mono:   'Space Mono', monospace;
+  --head:   'Unbounded', sans-serif;
+}
+
+html{background:var(--ink);}
+
+body{
+  background:var(--ink);
+  color:var(--txt);
+  font-family:var(--mono);
+  font-size:13px;
+  line-height:1.6;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* noise texture overlay */
+body::after{
+  content:'';
+  position:fixed;inset:0;z-index:999;
+  pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  opacity:0.4;
+}
+
+/* ══ SCROLLBAR ══ */
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-track{background:var(--ink);}
+::-webkit-scrollbar-thumb{background:var(--lime);border-radius:2px;}
+
+/* ══ HEADER ══ */
+.hdr{
+  position:sticky;top:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;
+  background:rgba(11,12,15,0.92);
+  backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--edge);
+}
+.hdr-brand{
+  display:flex;align-items:center;gap:10px;
+}
+.hdr-icon{
+  width:32px;height:32px;
+  background:var(--lime);
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;
+  flex-shrink:0;
+}
+.hdr-name{
+  font-family:var(--head);
+  font-size:14px;font-weight:900;
+  letter-spacing:-0.5px;
+  color:var(--txt);
+}
+.hdr-tag{
+  font-size:9px;font-weight:400;
+  color:var(--muted);
+  letter-spacing:1px;
+  text-transform:uppercase;
+  display:block;margin-top:-2px;
+}
+
+/* ══ WRAP ══ */
+.wrap{max-width:480px;margin:0 auto;padding:0 14px 90px;}
+
+/* ══ SCREEN ══ */
+.screen{display:none;}
+.screen.active{display:block;}
+
+/* ══ REGISTER ══ */
+.reg-hero{
+  padding:36px 0 28px;
+  text-align:center;
+}
+.reg-orb{
+  width:90px;height:90px;margin:0 auto 20px;
+  background:var(--lime);
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:40px;
+  box-shadow:0 0 60px rgba(200,241,53,0.3);
+  animation:pulse 3s ease infinite;
+}
+@keyframes pulse{
+  0%,100%{box-shadow:0 0 60px rgba(200,241,53,0.3);}
+  50%{box-shadow:0 0 90px rgba(200,241,53,0.5);}
+}
+.reg-title{
+  font-family:var(--head);
+  font-size:22px;font-weight:900;
+  letter-spacing:-1px;
+  margin-bottom:8px;
+  line-height:1.2;
+}
+.reg-sub{color:var(--muted);font-size:12px;line-height:1.6;}
+
+/* ══ LABEL ══ */
+.lbl{
+  display:block;
+  font-size:10px;font-weight:700;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  color:var(--lime);
+  margin-bottom:8px;
+}
+
+/* ══ INPUT ══ */
+.inp{
+  width:100%;
+  padding:14px 16px;
+  background:var(--card);
+  border:1px solid var(--edge);
+  border-radius:var(--r);
+  font-family:var(--mono);
+  font-size:14px;
+  color:var(--txt);
+  outline:none;
+  transition:border-color .2s,box-shadow .2s;
+  resize:none;
+}
+.inp:focus{
+  border-color:var(--lime);
+  box-shadow:0 0 0 3px rgba(200,241,53,0.1);
+}
+.inp::placeholder{color:var(--muted);}
+.f{margin-bottom:16px;}
+
+/* ══ PRIMARY BUTTON ══ */
+.btn{
+  width:100%;
+  padding:16px;
+  background:var(--lime);
+  color:var(--ink);
+  border:none;
+  border-radius:var(--r);
+  font-family:var(--head);
+  font-size:13px;font-weight:700;
+  letter-spacing:0.5px;
+  cursor:pointer;
+  transition:transform .1s,opacity .1s,box-shadow .2s;
+  box-shadow:0 4px 20px rgba(200,241,53,0.25);
+}
+.btn:active{transform:scale(.97);opacity:.9;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn.ghost{
+  background:transparent;
+  border:1px solid var(--edge);
+  color:var(--txt);
+  box-shadow:none;
+}
+.btn.ghost:active{background:rgba(255,255,255,0.04);}
+.btn.danger{background:var(--red);color:#fff;box-shadow:0 4px 20px rgba(255,71,87,.2);}
+
+/* ══ NOTICE ══ */
+.notice{
+  padding:12px 14px;
+  border-radius:var(--r);
+  font-size:12px;
+  text-align:center;
+  margin-top:10px;
+  display:none;
+  font-family:var(--mono);
+}
+.notice.ok {background:rgba(200,241,53,.1);border:1px solid rgba(200,241,53,.3);color:var(--lime);display:block;}
+.notice.err{background:rgba(255,71,87,.1);border:1px solid rgba(255,71,87,.3);color:var(--red);display:block;}
+
+/* ══ PROFILE CARD ══ */
+.prof-card{
+  margin:16px 0 10px;
+  background:var(--card);
+  border:1px solid var(--edge);
+  border-radius:18px;
+  overflow:hidden;
+  cursor:pointer;
+  transition:border-color .15s;
+}
+.prof-card:active{border-color:var(--lime);}
+.prof-top{
+  padding:20px 18px 16px;
+  display:flex;align-items:center;gap:14px;
+  background:linear-gradient(135deg,rgba(200,241,53,0.06) 0%,transparent 60%);
+}
+.prof-ava{
+  width:56px;height:56px;
+  border-radius:50%;
+  background:var(--lime);
+  display:flex;align-items:center;justify-content:center;
+  font-size:26px;
+  overflow:hidden;
+  flex-shrink:0;
+  border:2px solid rgba(200,241,53,0.3);
+}
+.prof-ava img{width:100%;height:100%;object-fit:cover;}
+.prof-name{font-family:var(--head);font-size:15px;font-weight:700;letter-spacing:-.3px;}
+.prof-phone{font-size:11px;color:var(--muted);margin-top:3px;}
+.prof-edit{
+  margin-left:auto;
+  font-size:10px;color:var(--lime);
+  font-family:var(--mono);
+  letter-spacing:.5px;
+}
+
+/* ══ MENU GRID ══ */
+.menu-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-bottom:10px;
+}
+.menu-tile{
+  background:var(--card);
+  border:1px solid var(--edge);
+  border-radius:18px;
+  padding:20px 16px;
+  cursor:pointer;
+  transition:border-color .15s,transform .1s;
+  position:relative;
+  overflow:hidden;
+}
+.menu-tile:active{transform:scale(.97);border-color:var(--lime);}
+.menu-tile::before{
+  content:'';
+  position:absolute;top:0;left:0;right:0;height:2px;
+}
+.menu-tile.t-order::before{background:var(--lime);}
+.menu-tile.t-hist::before{background:var(--blue);}
+.menu-tile.t-set::before{background:var(--muted);}
+.tile-ico{font-size:28px;margin-bottom:12px;}
+.tile-name{font-family:var(--head);font-size:12px;font-weight:700;letter-spacing:-.2px;}
+.tile-desc{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.4;}
+.menu-tile-wide{
+  grid-column:1/-1;
+}
+
+/* ══ BACK ══ */
+.back{
+  display:inline-flex;align-items:center;gap:8px;
+  background:none;border:none;
+  color:var(--lime);font-family:var(--mono);font-size:11px;
+  letter-spacing:.5px;
+  padding:8px 0 16px;cursor:pointer;
+  text-transform:uppercase;
+}
+
+/* ══ SCREEN TITLE ══ */
+.stitle{
+  font-family:var(--head);
+  font-size:20px;font-weight:900;
+  letter-spacing:-1px;
+  margin-bottom:20px;
+  line-height:1.1;
+}
+.stitle span{color:var(--lime);}
+
+/* ══ QTY ══ */
+.qty-wrap{
+  display:flex;align-items:center;gap:0;
+  background:var(--card);
+  border:1px solid var(--edge);
+  border-radius:var(--r);
+  overflow:hidden;
+}
+.qty-btn{
+  width:52px;height:52px;
+  background:none;border:none;
+  color:var(--lime);font-size:22px;font-weight:700;
+  cursor:pointer;
+  transition:background .1s;
+  flex-shrink:0;
+  font-family:var(--head);
+}
+.qty-btn:active{background:rgba(200,241,53,.08);}
+.qty-divider{width:1px;background:var(--edge);height:32px;flex-shrink:0;}
+.qty-val{
+  flex:1;text-align:center;
+  font-family:var(--head);
+  font-size:22px;font-weight:900;
+  color:var(--txt);
+}
+
+/* ══ FILE DROP ══ */
+.drop{
+  border:1.5px dashed rgba(200,241,53,0.25);
+  border-radius:var(--r);
+  padding:28px 16px;
+  text-align:center;
+  cursor:pointer;
+  transition:border-color .2s,background .2s;
+}
+.drop:hover{border-color:var(--lime);background:rgba(200,241,53,.03);}
+.drop-ico{font-size:30px;margin-bottom:8px;}
+.drop-txt{font-size:11px;color:var(--muted);line-height:1.6;}
+.drop-hint{font-size:10px;color:rgba(90,94,114,.6);margin-top:4px;}
+.file-chip{
+  display:flex;align-items:center;gap:10px;
+  background:rgba(200,241,53,.07);
+  border:1px solid rgba(200,241,53,.2);
+  border-radius:var(--r);
+  padding:12px 14px;
+  margin-top:10px;
+}
+.file-chip-name{flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.file-chip-rm{color:var(--red);cursor:pointer;font-size:18px;}
+
+/* ══ ORDER CARDS ══ */
+.ord-list{display:flex;flex-direction:column;gap:10px;}
+.ord-card{
+  background:var(--card);
+  border:1px solid var(--edge);
+  border-radius:18px;
+  padding:16px;
+  cursor:pointer;
+  transition:border-color .15s,transform .1s;
+  position:relative;
+  overflow:hidden;
+}
+.ord-card:active{transform:scale(.98);}
+.ord-card:hover{border-color:rgba(200,241,53,.2);}
+.ord-stripe{
+  position:absolute;left:0;top:0;bottom:0;width:3px;
+}
+.ord-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.ord-id{font-family:var(--head);font-size:14px;font-weight:700;letter-spacing:-.3px;}
+.pill{
+  font-size:10px;padding:4px 10px;
+  border-radius:20px;font-weight:700;
+  letter-spacing:.3px;white-space:nowrap;
+  font-family:var(--mono);
+}
+.pill-new    {background:rgba(255,149,0,.12);color:var(--orange);}
+.pill-ok     {background:rgba(200,241,53,.12);color:var(--lime);}
+.pill-bad    {background:rgba(255,71,87,.12);color:var(--red);}
+.pill-prep   {background:rgba(61,139,255,.12);color:var(--blue);}
+.pill-price  {background:rgba(0,212,170,.12);color:var(--teal);}
+.pill-paid   {background:rgba(200,241,53,.18);color:var(--lime2);}
+.pill-print  {background:rgba(61,139,255,.18);color:var(--blue);}
+.pill-ready  {background:rgba(0,212,170,.18);color:var(--teal);}
+.ord-info{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:4px 10px;
+}
+.ord-row{
+  font-size:11px;color:var(--muted);
+  display:flex;align-items:center;gap:5px;
+}
+.ord-row strong{color:var(--txt);font-weight:400;}
+
+/* ══ DETAIL ══ */
+.det-card{
+  background:var(--card);
+  border:1px solid var(--edge);
+  border-radius:18px;
+  overflow:hidden;
+  margin-bottom:14px;
+}
+.det-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 18px;
+  border-bottom:1px solid var(--edge);
+}
+.det-row:last-child{border-bottom:none;}
+.det-lbl{font-size:11px;color:var(--muted);letter-spacing:.3px;}
+.det-val{font-size:13px;font-weight:700;text-align:right;max-width:58%;word-break:break-word;}
+
+/* ══ SETTINGS ══ */
+.ava-big-wrap{
+  display:flex;justify-content:center;
+  padding:24px 0 8px;
+}
+.ava-big{
+  width:84px;height:84px;
+  border-radius:50%;
+  background:var(--lime);
+  display:flex;align-items:center;justify-content:center;
+  font-size:38px;
+  overflow:hidden;
+  cursor:pointer;
+  border:3px solid rgba(200,241,53,.35);
+  box-shadow:0 0 40px rgba(200,241,53,.2);
+  transition:box-shadow .2s;
+}
+.ava-big:active{box-shadow:0 0 60px rgba(200,241,53,.4);}
+.ava-big img{width:100%;height:100%;object-fit:cover;}
+.ava-hint{text-align:center;font-size:10px;color:var(--muted);margin-bottom:20px;letter-spacing:.3px;}
+.ava-opts{
+  display:grid;grid-template-columns:1fr 1fr 1fr;
+  gap:8px;margin-bottom:20px;
+}
+.ava-opt{
+  background:var(--card);
+  border:1px solid var(--edge);
+  border-radius:var(--r);
+  padding:12px 6px;
+  text-align:center;
+  cursor:pointer;
+  font-size:11px;color:var(--muted);
+  transition:border-color .15s,color .15s;
+  line-height:1.5;
+}
+.ava-opt:active{border-color:var(--lime);color:var(--txt);}
+.ava-opt .opt-ico{font-size:20px;display:block;margin-bottom:4px;}
+
+.theme-opts{
+  display:grid;grid-template-columns:1fr 1fr 1fr;
+  gap:8px;margin-bottom:20px;
+}
+.theme-opt{
+  background:var(--card);
+  border:1px solid var(--edge);
+  border-radius:var(--r);
+  padding:12px 8px;
+  text-align:center;
+  cursor:pointer;
+  font-size:11px;color:var(--muted);
+  transition:all .15s;
+  line-height:1.5;
+}
+.theme-opt.selected{
+  border-color:var(--lime);
+  color:var(--lime);
+  background:rgba(200,241,53,.06);
+}
+
+/* ══ DIVIDER ══ */
+.divider{
+  height:1px;background:var(--edge);
+  margin:20px 0;
+  position:relative;
+}
+.divider::after{
+  content:attr(data-label);
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  background:var(--ink);
+  padding:0 10px;
+  font-size:9px;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--muted);
+}
+
+/* ══ MODAL ══ */
+.modal-bg{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.85);
+  backdrop-filter:blur(10px);
+  z-index:9999;
+  display:flex;align-items:flex-end;justify-content:center;
+  animation:fadein .2s ease;
+}
+@keyframes fadein{from{opacity:0;}to{opacity:1;}}
+.modal-sheet{
+  background:var(--paper);
+  border:1px solid var(--edge);
+  border-radius:24px 24px 0 0;
+  padding:24px;
+  width:100%;max-width:500px;
+  animation:slideup .25s cubic-bezier(.22,1,.36,1);
+}
+@keyframes slideup{from{transform:translateY(100%);}to{transform:translateY(0);}}
+.modal-sheet h3{
+  font-family:var(--head);
+  font-size:16px;font-weight:900;
+  letter-spacing:-.3px;
+  margin-bottom:18px;
+  text-align:center;
+}
+.modal-btns{display:flex;gap:10px;margin-top:18px;}
+.modal-btn{
+  flex:1;padding:14px;border-radius:var(--r);
+  border:none;font-family:var(--head);font-size:12px;font-weight:700;
+  cursor:pointer;letter-spacing:.3px;
+}
+.mb-cancel{background:rgba(255,71,87,.12);color:var(--red);}
+.mb-ok    {background:var(--lime);color:var(--ink);}
+.cropper-view-box,.cropper-face{border-radius:50%;}
+.emoji-inp{
+  width:100%;padding:16px;
+  font-size:36px;text-align:center;
+  background:var(--card);border:1px solid var(--edge);
+  border-radius:var(--r);color:var(--txt);
+  font-family:var(--mono);
+}
+
+/* ══ EMPTY ══ */
+.empty{text-align:center;padding:60px 20px;}
+.empty-ico{font-size:52px;margin-bottom:14px;opacity:.5;}
+.empty-txt{font-size:12px;color:var(--muted);line-height:1.6;}
+.loading{text-align:center;padding:50px;color:var(--muted);font-size:12px;letter-spacing:.5px;}
+
+/* ══ ANIMATE ══ */
+@keyframes up{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+.up{animation:up .32s cubic-bezier(.22,1,.36,1) both;}
+.d1{animation-delay:.04s;}.d2{animation-delay:.08s;}.d3{animation-delay:.12s;}.d4{animation-delay:.16s;}.d5{animation-delay:.2s;}
+
+.hidden{display:none!important;}
+
+/* Light mode */
+body.light{
+  background:#f0f2f5;
+  --ink:#f0f2f5;--paper:#ffffff;--card:#ffffff;
+  --edge:rgba(0,0,0,0.08);--txt:#111318;--muted:#888ea6;
+}
+body.light .hdr{background:rgba(240,242,245,.92);}
+body.light ::-webkit-scrollbar-track{background:#f0f2f5;}
+</style>
+<link href="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.js"></script>
 </head>
 <body>
-    <div class="header"><h1>3Dprinti</h1></div>
 
-    <div class="container">
-        <div id="registerScreen" class="hidden">
-            <div class="register-container">
-                <div class="register-title">Добро пожаловать в 3Dprinti!</div>
-                <div class="register-sub">Давайте познакомимся</div>
-                <div class="form-field"><label>Ваше имя</label><input type="text" id="regName" placeholder="Александр"></div>
-                <div class="form-field"><label>Телефон</label><input type="tel" id="regPhone" placeholder="+375 XX XXX-XX-XX" value="+375"></div>
-                <button class="send-btn" id="registerBtn">Сохранить</button>
-                <div id="regStatus" class="status"></div>
-            </div>
+<!-- HEADER -->
+<header class="hdr">
+  <div class="hdr-brand">
+    <div class="hdr-icon">🖨️</div>
+    <div>
+      <div class="hdr-name">3Dprinti</div>
+      <span class="hdr-tag">3D печать на заказ</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ══ REGISTER ══ -->
+  <div id="sReg" class="screen">
+    <div class="reg-hero up">
+      <div class="reg-orb">🖨️</div>
+      <div class="reg-title">Привет!<br>Давай знакомиться</div>
+      <div class="reg-sub" style="margin-top:8px;">Укажи имя и телефон,<br>чтобы оформить заказ</div>
+    </div>
+    <div class="f up d1">
+      <label class="lbl">// Твоё имя</label>
+      <input id="rName" type="text" class="inp" placeholder="Александр Иванов">
+    </div>
+    <div class="f up d2">
+      <label class="lbl">// Телефон</label>
+      <input id="rPhone" type="tel" class="inp" placeholder="+375 XX XXX-XX-XX">
+    </div>
+    <button class="btn up d3" id="rBtn">Начать →</button>
+    <div id="rNote" class="notice"></div>
+  </div>
+
+  <!-- ══ MAIN ══ -->
+  <div id="sMain" class="screen">
+    <div class="prof-card up" id="profCard">
+      <div class="prof-top">
+        <div class="prof-ava" id="profAva">
+          <span id="profAvaT">👤</span>
+          <img id="profAvaI" style="display:none">
         </div>
-
-        <div id="mainMenu">
-            <div class="user-card" id="userCard">
-                <div class="user-avatar" id="userAvatar"><span id="avatarText">👤</span><img id="avatarImg" style="display:none;"></div>
-                <div class="user-info"><div class="user-name" id="userName">Гость</div><div class="user-phone" id="userPhone">не указан</div></div>
-            </div>
-            <div class="menu-item" data-action="new"><div class="menu-button"><div class="menu-button-left"><span class="menu-icon">📦</span><span>Новый заказ</span></div><span class="menu-arrow">→</span></div></div>
-            <div class="menu-item" data-action="history"><div class="menu-button"><div class="menu-button-left"><span class="menu-icon">📋</span><span>Мои заказы</span></div><span class="menu-arrow">→</span></div></div>
-            <div class="menu-item" data-action="settings"><div class="menu-button"><div class="menu-button-left"><span class="menu-icon">⚙️</span><span>Настройки</span></div><span class="menu-arrow">→</span></div></div>
+        <div>
+          <div class="prof-name" id="profName">Гость</div>
+          <div class="prof-phone" id="profPhone">не указан</div>
         </div>
-
-        <div id="orderForm" class="hidden">
-            <button class="back-button" id="backToMenu">← Назад</button>
-            <div class="form-field"><label>Что печатаем?</label><textarea id="modelDesc" rows="2" placeholder="Название модели, размеры, цвет..."></textarea></div>
-            <div class="form-field"><label>Количество</label><div class="quantity-box"><button class="quantity-btn" id="minusQty">−</button><span class="quantity-value" id="qtyValue">1</span><button class="quantity-btn" id="plusQty">+</button></div></div>
-            <div class="form-field"><label>Файл или фото (необязательно)</label><div class="file-area" id="fileArea">📎 Нажмите или перетащите файл<input type="file" id="fileInput" accept=".stl,.obj,.3mf,.jpg,.png,.jpeg" style="display:none"></div><div id="fileInfo" class="hidden file-info"><span id="fileName"></span><span class="remove-file" id="removeFile">✖</span></div></div>
-            <button class="send-btn" id="sendOrderBtn">✅ Отправить заказ</button>
-            <div id="formStatus" class="status"></div>
-        </div>
-
-        <div id="historyList" class="hidden"><button class="back-button" id="backFromHistory">← Назад</button><div id="ordersContainer"></div></div>
-
-        <div id="settingsPanel" class="hidden">
-            <button class="back-button" id="backFromSettings">← Назад</button>
-            <div class="form-field"><label>Имя</label><input type="text" id="settingsName" placeholder="Ваше имя"></div>
-            <div class="form-field"><label>Телефон</label><input type="tel" id="settingsPhone" placeholder="+375 XX XXX-XX-XX"></div>
-            <div class="form-field"><label>Аватар</label><div class="user-avatar" id="avatarPreview" style="margin-bottom: 12px; cursor: pointer;"><span id="settingsAvatarText">👤</span><img id="settingsAvatarImg" style="display:none;"></div>
-            <div class="avatar-options"><div class="avatar-option" id="choosePhotoBtn">🖼️ Выбрать фото</div><div class="avatar-option" id="emojiInputBtn">😊 Ввести эмодзи</div><div class="avatar-option" id="removeAvatarBtn" style="color: #ff3b30;">🗑️ Удалить</div></div></div>
-            <div class="form-field"><label>Тема оформления</label><div class="theme-option" data-theme="light"><span>☀️ Светлая</span><span id="themeLightCheck" style="color: #34c759;">✓</span></div><div class="theme-option" data-theme="dark"><span>🌙 Тёмная</span><span id="themeDarkCheck" style="color: #34c759; display: none;">✓</span></div></div>
-            <button class="send-btn" id="saveSettingsBtn">💾 Сохранить изменения</button>
-            <div id="settingsStatus" class="status"></div>
-        </div>
-
-        <div id="orderDetail" class="hidden"><button class="back-button" id="backFromDetail">← Назад</button><div id="detailContainer"></div></div>
+        <div class="prof-edit">EDIT →</div>
+      </div>
     </div>
 
-    <div id="cropperModal" class="modal-overlay" style="display: none;"><div class="modal-content"><div class="cropper-container-custom"><img id="cropperImage" style="max-width: 100%; max-height: 50vh;"></div><div class="modal-buttons"><button class="modal-btn modal-btn-cancel" id="cancelCrop">Отмена</button><button class="modal-btn modal-btn-save" id="saveCrop">Сохранить</button></div></div></div>
-    <div id="emojiModal" class="modal-overlay" style="display: none;"><div class="modal-content"><h3>Введите эмодзи</h3><input type="text" id="emojiInput" class="emoji-input" placeholder="😊" autocomplete="off"><div class="modal-buttons"><button id="emojiCancelBtn" class="modal-btn modal-btn-cancel">Отмена</button><button id="emojiSaveBtn" class="modal-btn modal-btn-save">Сохранить</button></div></div></div>
+    <div class="menu-grid">
+      <div class="menu-tile t-order up d1" data-go="order">
+        <div class="tile-ico">📦</div>
+        <div class="tile-name">Новый<br>заказ</div>
+        <div class="tile-desc">Оформить<br>3D-печать</div>
+      </div>
+      <div class="menu-tile t-hist up d2" data-go="history">
+        <div class="tile-ico">📋</div>
+        <div class="tile-name">Мои<br>заказы</div>
+        <div class="tile-desc">История<br>и статусы</div>
+      </div>
+      <div class="menu-tile t-set menu-tile-wide up d3" data-go="settings">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div class="tile-name">⚙️ &nbsp;Настройки</div>
+            <div class="tile-desc">Профиль, аватар, тема</div>
+          </div>
+          <div style="font-size:22px;opacity:.3;">→</div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
+  <!-- ══ NEW ORDER ══ -->
+  <div id="sOrder" class="screen">
+    <button class="back" id="bkOrder">← НАЗАД</button>
+    <div class="stitle up">Новый<br><span>заказ</span></div>
+    <div class="f up d1">
+      <label class="lbl">// Что печатаем?</label>
+      <textarea id="oDesc" rows="3" class="inp" placeholder="Опиши модель: название, размеры, материал, цвет..."></textarea>
+    </div>
+    <div class="f up d2">
+      <label class="lbl">// Количество</label>
+      <div class="qty-wrap">
+        <button class="qty-btn" id="qMinus">−</button>
+        <div class="qty-divider"></div>
+        <div class="qty-val" id="qVal">1</div>
+        <div class="qty-divider"></div>
+        <button class="qty-btn" id="qPlus">+</button>
+      </div>
+    </div>
+    <div class="f up d3">
+      <label class="lbl">// Файл / фото <span style="color:var(--muted);text-transform:none;letter-spacing:0;">(необязательно)</span></label>
+      <div class="drop" id="dropZone">
+        <div class="drop-ico">📎</div>
+        <div class="drop-txt">Нажми или перетащи файл сюда</div>
+        <div class="drop-hint">STL · OBJ · 3MF · JPG · PNG</div>
+        <input type="file" id="fInput" accept=".stl,.obj,.3mf,.jpg,.png,.jpeg" style="display:none">
+      </div>
+      <div id="fChip" class="file-chip hidden">
+        <span style="font-size:16px;">📄</span>
+        <span class="file-chip-name" id="fName"></span>
+        <span class="file-chip-rm" id="fRm">✕</span>
+      </div>
+    </div>
+    <button class="btn up d4" id="oSend">Отправить заказ ✓</button>
+    <div id="oNote" class="notice"></div>
+  </div>
 
-        const BOT_URL = 'https://threedff.onrender.com';
+  <!-- ══ HISTORY ══ -->
+  <div id="sHist" class="screen">
+    <button class="back" id="bkHist">← НАЗАД</button>
+    <div class="stitle up">Мои<br><span>заказы</span></div>
+    <div class="ord-list" id="ordList"></div>
+  </div>
 
-        let userProfile = { name: '', phone: '', avatar: '👤', registered: false, theme: 'light', avatarImage: null };
-        let cropper = null;
+  <!-- ══ DETAIL ══ -->
+  <div id="sDet" class="screen">
+    <button class="back" id="bkDet">← НАЗАД</button>
+    <div class="stitle up">Заказ<br><span id="detNum">#000</span></div>
+    <div id="detBody"></div>
+  </div>
 
-        // ========== ФУНКЦИЯ ФОРМАТИРОВАНИЯ ДАТЫ (ИСПРАВЛЕНА) ==========
-        function formatDate(dateString) {
-            if (!dateString || dateString === 'null' || dateString === 'None' || dateString === 'Дата не указана') return 'Дата не указана';
-            
-            let match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})\s(\d{2}):(\d{2}):(\d{2})/);
-            if (match) {
-                const [_, year, month, day, hour, minute] = match;
-                return `${day}.${month}.${year} ${hour}:${minute}`;
-            }
-            match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
-            if (match) {
-                const [_, year, month, day, hour, minute] = match;
-                return `${day}.${month}.${year} ${hour}:${minute}`;
-            }
-            return dateString;
-        }
+  <!-- ══ SETTINGS ══ -->
+  <div id="sSet" class="screen">
+    <button class="back" id="bkSet">← НАЗАД</button>
+    <div class="stitle up">Настройки</div>
 
-        function formatPhone(input) {
-            let value = input.value.replace(/[^0-9]/g, '');
-            if (!value.startsWith('375')) value = '375' + value;
-            let formatted = '+375';
-            if (value.length > 3) formatted += ' ' + value.substring(3, 5);
-            if (value.length > 5) formatted += ' ' + value.substring(5, 8);
-            if (value.length > 8) formatted += '-' + value.substring(8, 10);
-            if (value.length > 10) formatted += '-' + value.substring(10, 12);
-            input.value = formatted.trim();
-        }
+    <div class="ava-big-wrap up">
+      <div class="ava-big" id="avaBig">
+        <span id="avaBigT">👤</span>
+        <img id="avaBigI" style="display:none">
+      </div>
+    </div>
+    <div class="ava-hint up d1">Нажми на аватар чтобы изменить</div>
 
-        function setupPhoneField(phoneInput) {
-            if (!phoneInput) return;
-            phoneInput.addEventListener('focus', function() { if (!this.value || this.value === '' || this.value === '+375') this.value = '+375'; });
-            phoneInput.addEventListener('input', function() { formatPhone(this); });
-        }
+    <div class="ava-opts up d2">
+      <div class="ava-opt" id="avaPhoto">
+        <span class="opt-ico">🖼️</span>Фото
+      </div>
+      <div class="ava-opt" id="avaEmoji">
+        <span class="opt-ico">😊</span>Эмодзи
+      </div>
+      <div class="ava-opt" id="avaRm" style="color:var(--red);">
+        <span class="opt-ico">🗑️</span>Удалить
+      </div>
+    </div>
 
-        function loadTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            document.body.classList.remove('light', 'dark');
-            document.body.classList.add(savedTheme);
-            userProfile.theme = savedTheme;
-        }
-        function saveTheme(theme) { localStorage.setItem('theme', theme); loadTheme(); }
+    <div class="divider" data-label="профиль"></div>
 
-        function updateAvatarDisplay() {
-            const avatarText = document.getElementById('avatarText');
-            const avatarImg = document.getElementById('avatarImg');
-            const settingsAvatarText = document.getElementById('settingsAvatarText');
-            const settingsAvatarImg = document.getElementById('settingsAvatarImg');
-            if (userProfile.avatarImage) {
-                const fullUrl = userProfile.avatarImage.startsWith('/avatars/') ? BOT_URL + userProfile.avatarImage : userProfile.avatarImage;
-                avatarText.style.display = 'none'; avatarImg.style.display = 'block'; avatarImg.src = fullUrl;
-                settingsAvatarText.style.display = 'none'; settingsAvatarImg.style.display = 'block'; settingsAvatarImg.src = fullUrl;
-            } else {
-                avatarText.style.display = 'flex'; avatarImg.style.display = 'none'; avatarText.textContent = userProfile.avatar || '👤';
-                settingsAvatarText.style.display = 'flex'; settingsAvatarImg.style.display = 'none'; settingsAvatarText.textContent = userProfile.avatar || '👤';
-            }
-        }
+    <div class="f up d3">
+      <label class="lbl">// Имя</label>
+      <input id="sName" type="text" class="inp" placeholder="Имя">
+    </div>
+    <div class="f up d3">
+      <label class="lbl">// Телефон</label>
+      <input id="sPhone" type="tel" class="inp" placeholder="+375 XX XXX-XX-XX">
+    </div>
 
-        async function loadProfileFromServer() {
-            const user = tg.initDataUnsafe?.user || {};
-            if (!user.id) return;
-            try {
-                const response = await fetch(`${BOT_URL}/get_profile`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: user.id }) });
-                const data = await response.json();
-                if (data.ok && data.profile) {
-                    if (data.profile.avatar_url) userProfile.avatarImage = data.profile.avatar_url;
-                    if (data.profile.name) userProfile.name = data.profile.name;
-                    if (data.profile.phone) userProfile.phone = data.profile.phone;
-                    userProfile.registered = true;
-                    localStorage.setItem('user_profile', JSON.stringify(userProfile));
-                    updateAvatarDisplay();
-                    document.getElementById('userName').textContent = userProfile.name;
-                    document.getElementById('userPhone').textContent = userProfile.phone;
-                    document.getElementById('registerScreen').classList.add('hidden');
-                    document.getElementById('mainMenu').classList.remove('hidden');
-                }
-            } catch (error) { console.error('Ошибка загрузки профиля:', error); }
-        }
+    <div class="divider" data-label="тема"></div>
+    <label class="lbl up d4">// Оформление</label>
+    <div class="theme-opts up d4">
+      <div class="theme-opt" data-theme="auto" id="thAuto">✨ Авто</div>
+      <div class="theme-opt" data-theme="dark" id="thDark">🌙 Тёмная</div>
+      <div class="theme-opt" data-theme="light" id="thLight">☀️ Светлая</div>
+    </div>
 
-        function loadProfile() {
-            const saved = localStorage.getItem('user_profile');
-            if (saved) {
-                userProfile = JSON.parse(saved);
-                if (userProfile.registered) {
-                    updateAvatarDisplay();
-                    document.getElementById('userName').textContent = userProfile.name;
-                    document.getElementById('userPhone').textContent = userProfile.phone;
-                    document.getElementById('registerScreen').classList.add('hidden');
-                    document.getElementById('mainMenu').classList.remove('hidden');
-                    loadProfileFromServer();
-                } else { showRegister(); }
-            } else { showRegister(); }
-            loadTheme();
-        }
+    <button class="btn up d5" id="sSave">Сохранить ✓</button>
+    <div id="sNote" class="notice"></div>
+  </div>
 
-        function showRegister() {
-            document.getElementById('registerScreen').classList.remove('hidden');
-            document.getElementById('mainMenu').classList.add('hidden');
-            document.getElementById('orderForm').classList.add('hidden');
-            document.getElementById('historyList').classList.add('hidden');
-            document.getElementById('settingsPanel').classList.add('hidden');
-            document.getElementById('orderDetail').classList.add('hidden');
-            setupPhoneField(document.getElementById('regPhone'));
-        }
+</div><!-- /wrap -->
 
-        function saveProfile(name, phone, avatar, avatarImage) {
-            userProfile = { ...userProfile, name: name, phone: phone, avatar: avatar, avatarImage: avatarImage, registered: true };
-            localStorage.setItem('user_profile', JSON.stringify(userProfile));
-            document.getElementById('userName').textContent = name;
-            document.getElementById('userPhone').textContent = phone;
-            updateAvatarDisplay();
-            document.getElementById('registerScreen').classList.add('hidden');
-            document.getElementById('mainMenu').classList.remove('hidden');
-            const user = tg.initDataUnsafe?.user || {};
-            fetch(`${BOT_URL}/save_profile`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: user.id, name: name, phone: phone }) }).catch(e => console.error(e));
-        }
+<!-- CROPPER MODAL -->
+<div id="mCrop" class="modal-bg hidden">
+  <div class="modal-sheet">
+    <h3>Обрезать фото</h3>
+    <img id="cropImg" style="max-width:100%;max-height:50vh;display:block;border-radius:12px;">
+    <div class="modal-btns">
+      <button class="modal-btn mb-cancel" id="cropCancel">Отмена</button>
+      <button class="modal-btn mb-ok"     id="cropOk">Сохранить</button>
+    </div>
+  </div>
+</div>
 
-        document.getElementById('registerBtn').onclick = () => {
-            const name = document.getElementById('regName').value.trim();
-            let phone = document.getElementById('regPhone').value.trim();
-            const statusDiv = document.getElementById('regStatus');
-            if (!phone.startsWith('+375')) phone = '+375' + phone.replace(/[^0-9]/g, '');
-            if (!name || !phone || phone === '+375') {
-                statusDiv.textContent = '❌ Заполните все поля';
-                statusDiv.className = 'status error';
-                setTimeout(() => statusDiv.className = 'status', 3000);
-                return;
-            }
-            saveProfile(name, phone, '👤', null);
-            statusDiv.textContent = '✅ Профиль сохранён!';
-            statusDiv.className = 'status success';
-            setTimeout(() => statusDiv.className = 'status', 2000);
-        };
+<!-- EMOJI MODAL -->
+<div id="mEmoji" class="modal-bg hidden">
+  <div class="modal-sheet">
+    <h3>Введи эмодзи</h3>
+    <input type="text" id="emojiInp" class="emoji-inp" placeholder="😊">
+    <div class="modal-btns">
+      <button class="modal-btn mb-cancel" id="emojiCancel">Отмена</button>
+      <button class="modal-btn mb-ok"     id="emojiOk">Ок</button>
+    </div>
+  </div>
+</div>
 
-        function openSettings() {
-            document.getElementById('settingsName').value = userProfile.name;
-            document.getElementById('settingsPhone').value = userProfile.phone;
-            setupPhoneField(document.getElementById('settingsPhone'));
-            document.getElementById('themeLightCheck').style.display = userProfile.theme === 'light' ? 'inline' : 'none';
-            document.getElementById('themeDarkCheck').style.display = userProfile.theme === 'dark' ? 'inline' : 'none';
-            document.querySelectorAll('[data-theme]').forEach(el => {
-                el.onclick = () => { const theme = el.dataset.theme; userProfile.theme = theme; saveTheme(theme); document.getElementById('themeLightCheck').style.display = theme === 'light' ? 'inline' : 'none'; document.getElementById('themeDarkCheck').style.display = theme === 'dark' ? 'inline' : 'none'; };
-            });
-            document.getElementById('mainMenu').classList.add('hidden');
-            document.getElementById('settingsPanel').classList.remove('hidden');
-        }
+<script>
+/* ── TG ── */
+const tg = window.Telegram?.WebApp || {
+  ready:()=>{},expand:()=>{},close:()=>{},colorScheme:'dark',
+  initDataUnsafe:{user:{id:0,username:'test',first_name:'Тест'}},
+  MainButton:{setText:()=>{},onClick:()=>{},show:()=>{},hide:()=>{}}
+};
+tg.ready();tg.expand();
 
-        document.getElementById('emojiInputBtn').onclick = () => { document.getElementById('emojiModal').style.display = 'flex'; document.getElementById('emojiInput').value = ''; document.getElementById('emojiInput').focus(); };
-        document.getElementById('emojiCancelBtn').onclick = () => { document.getElementById('emojiModal').style.display = 'none'; };
-        document.getElementById('emojiSaveBtn').onclick = () => {
-            const emoji = document.getElementById('emojiInput').value.trim();
-            if (emoji && emoji.length > 0) { userProfile.avatar = emoji; userProfile.avatarImage = null; updateAvatarDisplay(); localStorage.setItem('user_profile', JSON.stringify(userProfile)); }
-            document.getElementById('emojiModal').style.display = 'none';
-        };
-        document.getElementById('emojiModal').onclick = (e) => { if (e.target === document.getElementById('emojiModal')) document.getElementById('emojiModal').style.display = 'none'; };
-        document.getElementById('choosePhotoBtn').onclick = () => { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/jpeg,image/png,image/jpg'; input.onchange = (e) => { if (e.target.files[0]) openCropper(e.target.files[0]); }; input.click(); };
-        document.getElementById('removeAvatarBtn').onclick = () => { userProfile.avatar = '👤'; userProfile.avatarImage = null; updateAvatarDisplay(); localStorage.setItem('user_profile', JSON.stringify(userProfile)); };
+const API = 'https://threedff.onrender.com';
+let profile = {name:'',phone:'',emoji:'👤',avatarUrl:null,registered:false,theme:'auto'};
+let qty=1, selFile=null, cropper=null;
 
-        function openCropper(file) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const img = document.getElementById('cropperImage');
-                img.src = event.target.result;
-                document.getElementById('cropperModal').style.display = 'flex';
-                if (cropper) cropper.destroy();
-                setTimeout(() => {
-                    cropper = new Cropper(img, { aspectRatio: 1, viewMode: 1, dragMode: 'move', initialAspectRatio: 1, autoCropArea: 1, cropBoxMovable: true, cropBoxResizable: true, zoomable: true, zoomOnWheel: true, movable: true, guides: false, center: true, highlight: false, background: false, viewMode: 1 });
-                }, 100);
-            };
-            reader.readAsDataURL(file);
-        }
+/* ── UTILS ── */
+const $=id=>document.getElementById(id);
+function dt(s){
+  if(!s||s==='null'||s==='None'||s==='Дата не указана')return'—';
+  const m=s.match(/^(\d{4})-(\d{2})-(\d{2})[\sT](\d{2}):(\d{2})/);
+  return m?`${m[3]}.${m[2]}.${m[1]} ${m[4]}:${m[5]}`:s;
+}
+function phone(el){
+  let v=el.value.replace(/[^0-9]/g,'');
+  if(!v.startsWith('375'))v='375'+v;
+  let f='+375';
+  if(v.length>3)f+=' '+v.substring(3,5);
+  if(v.length>5)f+=' '+v.substring(5,8);
+  if(v.length>8)f+='-'+v.substring(8,10);
+  if(v.length>10)f+='-'+v.substring(10,12);
+  el.value=f.trim();
+}
+function setupPhone(el){
+  if(!el)return;
+  el.addEventListener('focus',()=>{if(!el.value)el.value='+375';});
+  el.addEventListener('input',()=>phone(el));
+}
 
-        document.getElementById('cancelCrop').onclick = () => { document.getElementById('cropperModal').style.display = 'none'; if (cropper) { cropper.destroy(); cropper = null; } };
-        document.getElementById('saveCrop').onclick = async () => {
-            if (cropper) {
-                const canvas = cropper.getCroppedCanvas({ width: 300, height: 300 });
-                const croppedImage = canvas.toDataURL('image/jpeg', 0.9);
-                const user = tg.initDataUnsafe?.user || {};
-                try {
-                    const response = await fetch(`${BOT_URL}/upload_avatar`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: user.id, image_data: croppedImage }) });
-                    const result = await response.json();
-                    if (result.ok) { userProfile.avatarImage = result.avatar_url; userProfile.avatar = null; updateAvatarDisplay(); localStorage.setItem('user_profile', JSON.stringify(userProfile)); }
-                } catch (error) { console.error('Ошибка загрузки фото:', error); }
-                document.getElementById('cropperModal').style.display = 'none';
-                cropper.destroy(); cropper = null;
-            }
-        };
-        document.getElementById('cropperModal').onclick = (e) => { if (e.target === document.getElementById('cropperModal')) { document.getElementById('cropperModal').style.display = 'none'; if (cropper) { cropper.destroy(); cropper = null; } } };
-        document.getElementById('saveSettingsBtn').onclick = () => {
-            const newName = document.getElementById('settingsName').value.trim();
-            let newPhone = document.getElementById('settingsPhone').value.trim();
-            if (!newPhone.startsWith('+375')) newPhone = '+375' + newPhone.replace(/[^0-9]/g, '');
-            if (!newName || !newPhone) {
-                document.getElementById('settingsStatus').textContent = '❌ Заполните поля';
-                document.getElementById('settingsStatus').className = 'status error';
-                setTimeout(() => document.getElementById('settingsStatus').className = 'status', 3000);
-                return;
-            }
-            userProfile.name = newName; userProfile.phone = newPhone;
-            localStorage.setItem('user_profile', JSON.stringify(userProfile));
-            document.getElementById('userName').textContent = newName;
-            document.getElementById('userPhone').textContent = newPhone;
-            const user = tg.initDataUnsafe?.user || {};
-            fetch(`${BOT_URL}/save_profile`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: user.id, name: newName, phone: newPhone }) }).catch(e => console.error(e));
-            document.getElementById('settingsStatus').textContent = '✅ Профиль обновлён!';
-            document.getElementById('settingsStatus').className = 'status success';
-            setTimeout(() => {
-                document.getElementById('settingsStatus').className = 'status';
-                document.getElementById('settingsPanel').classList.add('hidden');
-                document.getElementById('mainMenu').classList.remove('hidden');
-            }, 1500);
-        };
+/* ── THEME ── */
+function applyTheme(t){
+  const dark=t==='dark'||(t==='auto'&&tg.colorScheme==='dark');
+  document.body.className=dark?'':'light';
+  profile.theme=t;
+  [$('thAuto'),$('thDark'),$('thLight')].forEach(el=>{if(el)el.classList.remove('selected');});
+  const map={auto:'thAuto',dark:'thDark',light:'thLight'};
+  if($(map[t]))$(map[t]).classList.add('selected');
+}
+document.querySelectorAll('[data-theme]').forEach(el=>{
+  el.onclick=()=>{applyTheme(el.dataset.theme);save();};
+});
 
-        const mainMenu = document.getElementById('mainMenu');
-        const orderFormDiv = document.getElementById('orderForm');
-        const historyListDiv = document.getElementById('historyList');
-        const orderDetailDiv = document.getElementById('orderDetail');
-        const settingsPanel = document.getElementById('settingsPanel');
+/* ── AVATAR ── */
+function renderAva(){
+  [['profAvaT','profAvaI'],['avaBigT','avaBigI']].forEach(([t,i])=>{
+    const te=$(t),im=$(i);if(!te||!im)return;
+    if(profile.avatarUrl){
+      const url=profile.avatarUrl.startsWith('/avatars/')?API+profile.avatarUrl:profile.avatarUrl;
+      te.style.display='none';im.style.display='block';im.src=url;
+    }else{
+      te.style.display='';im.style.display='none';te.textContent=profile.emoji||'👤';
+    }
+  });
+}
 
-        function hideAllScreens() {
-            mainMenu.classList.add('hidden');
-            orderFormDiv.classList.add('hidden');
-            historyListDiv.classList.add('hidden');
-            orderDetailDiv.classList.add('hidden');
-            settingsPanel.classList.add('hidden');
-        }
+/* ── PERSIST ── */
+function save(){localStorage.setItem('p3d',JSON.stringify(profile));}
+function load(){
+  const s=localStorage.getItem('p3d');
+  if(s)profile={...profile,...JSON.parse(s)};
+  applyTheme(profile.theme||'auto');
+  if(profile.registered){syncServer();refreshCard();go('sMain');}
+  else go('sReg');
+}
+async function syncServer(){
+  const uid=tg.initDataUnsafe?.user?.id;if(!uid)return;
+  try{
+    const r=await fetch(`${API}/get_profile`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:uid})});
+    const d=await r.json();
+    if(d.ok&&d.profile){
+      if(d.profile.name)profile.name=d.profile.name;
+      if(d.profile.phone)profile.phone=d.profile.phone;
+      if(d.profile.avatar_url)profile.avatarUrl=d.profile.avatar_url;
+      save();refreshCard();
+    }
+  }catch(e){}
+}
+function refreshCard(){
+  $('profName').textContent=profile.name||'Гость';
+  $('profPhone').textContent=profile.phone||'не указан';
+  if($('sName'))$('sName').value=profile.name||'';
+  if($('sPhone'))$('sPhone').value=profile.phone||'';
+  renderAva();
+}
 
-        document.querySelectorAll('[data-action="new"]').forEach(el => {
-            el.onclick = () => {
-                if (!userProfile.registered) { showRegister(); return; }
-                hideAllScreens();
-                orderFormDiv.classList.remove('hidden');
-            };
-        });
-        document.querySelectorAll('[data-action="history"]').forEach(el => {
-            el.onclick = () => {
-                if (!userProfile.registered) { showRegister(); return; }
-                hideAllScreens();
-                historyListDiv.classList.remove('hidden');
-                loadOrders();
-            };
-        });
-        document.querySelectorAll('[data-action="settings"]').forEach(el => {
-            el.onclick = () => {
-                if (!userProfile.registered) { showRegister(); return; }
-                openSettings();
-            };
-        });
-        document.getElementById('backToMenu').onclick = () => { hideAllScreens(); mainMenu.classList.remove('hidden'); };
-        document.getElementById('backFromHistory').onclick = () => { hideAllScreens(); mainMenu.classList.remove('hidden'); };
-        document.getElementById('backFromSettings').onclick = () => { hideAllScreens(); mainMenu.classList.remove('hidden'); };
-        document.getElementById('backFromDetail').onclick = () => { hideAllScreens(); historyListDiv.classList.remove('hidden'); loadOrders(); };
+/* ── SCREENS ── */
+function go(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $(id).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
 
-        let quantity = 1;
-        document.getElementById('minusQty').onclick = () => { if (quantity > 1) { quantity--; document.getElementById('qtyValue').textContent = quantity; } };
-        document.getElementById('plusQty').onclick = () => { quantity++; document.getElementById('qtyValue').textContent = quantity; };
+/* ── MENU ── */
+document.querySelectorAll('[data-go]').forEach(el=>{
+  el.onclick=()=>{
+    if(!profile.registered){go('sReg');return;}
+    const t=el.dataset.go;
+    if(t==='order'){qty=1;$('qVal').textContent='1';go('sOrder');}
+    if(t==='history'){go('sHist');loadOrders();}
+    if(t==='settings'){openSettings();go('sSet');}
+  };
+});
+$('profCard').onclick=()=>{if(profile.registered){openSettings();go('sSet');}};
 
-        let selectedFile = null;
-        const fileArea = document.getElementById('fileArea');
-        const fileInput = document.getElementById('fileInput');
-        const fileInfo = document.getElementById('fileInfo');
-        const fileNameSpan = document.getElementById('fileName');
-        const removeFileBtn = document.getElementById('removeFile');
-        fileArea.onclick = () => fileInput.click();
-        fileArea.ondragover = (e) => { e.preventDefault(); fileArea.style.borderColor = '#007aff'; };
-        fileArea.ondragleave = () => fileArea.style.borderColor = '';
-        fileArea.ondrop = (e) => { e.preventDefault(); fileArea.style.borderColor = ''; if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); };
-        fileInput.onchange = (e) => { if (e.target.files[0]) handleFile(e.target.files[0]); };
-        function handleFile(file) { selectedFile = file; fileNameSpan.textContent = file.name; fileInfo.classList.remove('hidden'); fileArea.style.display = 'none'; }
-        removeFileBtn.onclick = () => { selectedFile = null; fileInfo.classList.add('hidden'); fileArea.style.display = 'block'; fileInput.value = ''; };
+/* ── REGISTER ── */
+$('rBtn').onclick=()=>{
+  const n=$('rName').value.trim();let p=$('rPhone').value.trim();
+  const note=$('rNote');
+  if(!p.startsWith('+375'))p='+375'+p.replace(/[^0-9]/g,'');
+  if(!n||p.length<8){note.textContent='❌ Заполни все поля';note.className='notice err';setTimeout(()=>note.className='notice',3e3);return;}
+  profile={...profile,name:n,phone:p,registered:true};save();refreshCard();go('sMain');
+  const uid=tg.initDataUnsafe?.user?.id;
+  fetch(`${API}/save_profile`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:uid,name:n,phone:p})}).catch(()=>{});
+};
+setupPhone($('rPhone'));
 
-        const sendOrderBtn = document.getElementById('sendOrderBtn');
-        const formStatus = document.getElementById('formStatus');
-        sendOrderBtn.onclick = async () => {
-            const model = document.getElementById('modelDesc').value.trim();
-            if (!model) {
-                formStatus.textContent = '❌ Опишите, что нужно напечатать';
-                formStatus.className = 'status error';
-                setTimeout(() => formStatus.className = 'status', 3000);
-                return;
-            }
-            sendOrderBtn.disabled = true;
-            sendOrderBtn.textContent = '⏳ Отправка...';
-            const user = tg.initDataUnsafe?.user || {};
-            const formData = new FormData();
-            formData.append('user_id', user.id || 0);
-            formData.append('username', user.username || '');
-            formData.append('name', userProfile.name);
-            formData.append('phone', userProfile.phone);
-            formData.append('model', model);
-            formData.append('quantity', quantity);
-            if (selectedFile) formData.append('file', selectedFile);
-            try {
-                const response = await fetch(`${BOT_URL}/webapp_order_file`, { method: 'POST', body: formData });
-                if (response.ok) {
-                    const result = await response.json();
-                    if (result.ok) {
-                        formStatus.textContent = '✅ Заказ отправлен!';
-                        formStatus.className = 'status success';
-                        document.getElementById('modelDesc').value = '';
-                        quantity = 1;
-                        document.getElementById('qtyValue').textContent = '1';
-                        selectedFile = null;
-                        fileInfo.classList.add('hidden');
-                        fileArea.style.display = 'block';
-                        setTimeout(() => { loadOrders(); }, 1000);
-                        setTimeout(() => {
-                            orderFormDiv.classList.add('hidden');
-                            mainMenu.classList.remove('hidden');
-                            formStatus.className = 'status';
-                        }, 1500);
-                    } else {
-                        formStatus.textContent = '⚠️ ' + (result.error || 'Ошибка при отправке');
-                        formStatus.className = 'status error';
-                    }
-                } else {
-                    formStatus.textContent = '⚠️ Заказ отправлен, но ответ не получен. Проверьте историю.';
-                    formStatus.className = 'status success';
-                    document.getElementById('modelDesc').value = '';
-                    quantity = 1;
-                    document.getElementById('qtyValue').textContent = '1';
-                    selectedFile = null;
-                    fileInfo.classList.add('hidden');
-                    fileArea.style.display = 'block';
-                    setTimeout(() => { loadOrders(); }, 1000);
-                    setTimeout(() => {
-                        orderFormDiv.classList.add('hidden');
-                        mainMenu.classList.remove('hidden');
-                        formStatus.className = 'status';
-                    }, 2000);
-                }
-            } catch (error) {
-                formStatus.textContent = '⚠️ Заказ отправлен, но ошибка соединения. Проверьте историю.';
-                formStatus.className = 'status success';
-                document.getElementById('modelDesc').value = '';
-                quantity = 1;
-                document.getElementById('qtyValue').textContent = '1';
-                selectedFile = null;
-                fileInfo.classList.add('hidden');
-                fileArea.style.display = 'block';
-                setTimeout(() => { loadOrders(); }, 1000);
-                setTimeout(() => {
-                    orderFormDiv.classList.add('hidden');
-                    mainMenu.classList.remove('hidden');
-                    formStatus.className = 'status';
-                }, 2000);
-            } finally {
-                sendOrderBtn.disabled = false;
-                sendOrderBtn.textContent = '✅ Отправить заказ';
-            }
-        };
+/* ── BACK ── */
+$('bkOrder').onclick=()=>go('sMain');
+$('bkHist').onclick=()=>go('sMain');
+$('bkSet').onclick=()=>go('sMain');
+$('bkDet').onclick=()=>{go('sHist');loadOrders();};
 
-        async function loadOrders() {
-            const container = document.getElementById('ordersContainer');
-            container.innerHTML = '<div class="loading">⏳ Загрузка...</div>';
-            const user = tg.initDataUnsafe?.user || {};
-            try {
-                const response = await fetch(`${BOT_URL}/webapp_orders`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: user.id }) });
-                const data = await response.json();
-                if (data.orders && data.orders.length > 0) {
-                    container.innerHTML = '';
-                    data.orders.forEach(order => {
-                        const statusClass = getStatusClass(order.status);
-                        const statusName = getStatusName(order.status);
-                        const total = order.total_price || 0;
-                        const div = document.createElement('div');
-                        div.className = 'history-card';
-                        div.onclick = () => showOrderDetail(order);
-                        div.innerHTML = `<div class="history-header"><span class="history-id">Заказ №${order.id}</span><span class="history-status status-${statusClass}">${statusName}</span></div><div>📦 ${order.model_name.length > 30 ? order.model_name.substring(0,30)+'...' : order.model_name}</div><div>🔢 ${order.quantity} шт.</div>${total > 0 ? `<div>💰 ${total.toLocaleString()} руб.</div>` : ''}<div class="history-details">📅 ${formatDate(order.created_at)}</div>`;
-                        container.appendChild(div);
-                    });
-                } else {
-                    container.innerHTML = '<div class="loading">📭 У вас пока нет заказов</div>';
-                }
-            } catch (error) {
-                console.error('Ошибка загрузки заказов:', error);
-                container.innerHTML = '<div class="loading">⚠️ Ошибка загрузки</div>';
-            }
-        }
+/* ── QUANTITY ── */
+$('qMinus').onclick=()=>{if(qty>1){qty--;$('qVal').textContent=qty;}};
+$('qPlus').onclick=()=>{qty++;$('qVal').textContent=qty;};
 
-        function showOrderDetail(order) {
-            const container = document.getElementById('detailContainer');
-            const total = order.total_price || 0;
-            const statusName = getStatusName(order.status);
-            const statusClass = getStatusClass(order.status);
-            container.innerHTML = `<div class="order-detail-card"><div class="detail-row"><span class="detail-label">Заказ №</span><span class="detail-value">${order.id}</span></div><div class="detail-row"><span class="detail-label">Статус</span><span class="detail-value"><span class="history-status status-${statusClass}">${statusName}</span></span></div><div class="detail-row"><span class="detail-label">Модель</span><span class="detail-value">${order.model_name}</span></div><div class="detail-row"><span class="detail-label">Количество</span><span class="detail-value">${order.quantity} шт.</span></div>${total > 0 ? `<div class="detail-row"><span class="detail-label">Сумма</span><span class="detail-value">${total.toLocaleString()} руб.</span></div>` : ''}<div class="detail-row"><span class="detail-label">Дата заказа</span><span class="detail-value">${formatDate(order.created_at)}</span></div></div>`;
-            hideAllScreens();
-            orderDetailDiv.classList.remove('hidden');
-        }
+/* ── FILE ── */
+const dropZone=$('dropZone'),fInput=$('fInput');
+dropZone.onclick=()=>fInput.click();
+dropZone.ondragover=e=>{e.preventDefault();dropZone.style.borderColor='var(--lime)';};
+dropZone.ondragleave=()=>dropZone.style.borderColor='';
+dropZone.ondrop=e=>{e.preventDefault();dropZone.style.borderColor='';if(e.dataTransfer.files[0])setFile(e.dataTransfer.files[0]);};
+fInput.onchange=e=>{if(e.target.files[0])setFile(e.target.files[0]);};
+function setFile(f){selFile=f;$('fName').textContent=f.name;$('fChip').classList.remove('hidden');dropZone.style.display='none';}
+$('fRm').onclick=()=>{selFile=null;fInput.value='';$('fChip').classList.add('hidden');dropZone.style.display='';};
 
-        function getStatusClass(status) {
-            const map = { 'новый':'new', 'принят':'accepted', 'отказ':'rejected', 'подготовка модели':'preparing', 'цена выставлена':'preparing', 'ожидает оплаты наличными':'preparing', 'оплачено наличными':'paid', 'подготовка принтера':'preparing', 'печать':'printing', 'готова':'ready' };
-            return map[status] || 'new';
-        }
-        function getStatusName(status) {
-            const map = { 'новый':'🟡 Ожидает', 'принят':'🟢 Принят', 'отказ':'🔴 Отклонён', 'подготовка модели':'🟠 Подготовка', 'цена выставлена':'💰 Цена выставлена', 'ожидает оплаты наличными':'💵 Ждём оплату', 'оплачено наличными':'✅ Оплачено', 'подготовка принтера':'🔧 Готовим принтер', 'печать':'🖨️ Печатаем', 'готова':'🎉 Готов к выдаче' };
-            return map[status] || status;
-        }
+/* ── SEND ORDER ── */
+$('oSend').onclick=async()=>{
+  const desc=$('oDesc').value.trim(),note=$('oNote'),btn=$('oSend');
+  if(!desc){note.textContent='❌ Опиши что нужно напечатать';note.className='notice err';setTimeout(()=>note.className='notice',3e3);return;}
+  btn.disabled=true;btn.textContent='⏳ Отправка...';
+  const uid=tg.initDataUnsafe?.user?.id,un=tg.initDataUnsafe?.user?.username||'';
+  const fd=new FormData();
+  fd.append('user_id',uid||0);fd.append('username',un);
+  fd.append('name',profile.name);fd.append('phone',profile.phone);
+  fd.append('model',desc);fd.append('quantity',qty);
+  if(selFile)fd.append('file',selFile);
+  try{
+    const r=await fetch(`${API}/webapp_order_file`,{method:'POST',body:fd});
+    const d=await r.json().catch(()=>({ok:true}));
+    note.textContent=`✅ Заказ №${d.order_id||''} отправлен!`;note.className='notice ok';
+    $('oDesc').value='';qty=1;$('qVal').textContent='1';
+    selFile=null;fInput.value='';$('fChip').classList.add('hidden');dropZone.style.display='';
+    setTimeout(()=>{go('sMain');note.className='notice';},2e3);
+  }catch(e){
+    note.textContent='⚠️ Отправлено. Проверь историю.';note.className='notice ok';
+    setTimeout(()=>{go('sMain');note.className='notice';},2e3);
+  }finally{btn.disabled=false;btn.textContent='Отправить заказ ✓';}
+};
 
-        document.getElementById('userAvatar').onclick = () => { if (userProfile.registered) openSettings(); };
-        loadProfile();
-        tg.MainButton.setText('Закрыть');
-        tg.MainButton.onClick(() => tg.close());
-    </script>
+/* ── BADGES ── */
+function getPill(s){
+  return {
+    'новый':'pill-new','принят':'pill-ok','отказ':'pill-bad',
+    'подготовка модели':'pill-prep','цена выставлена':'pill-price',
+    'оплачено наличными':'pill-paid','печать':'pill-print','готова':'pill-ready'
+  }[s]||'pill-new';
+}
+function getLabel(s){
+  return {
+    'новый':'Ожидает','принят':'Принят','отказ':'Отказ',
+    'подготовка модели':'Подготовка','цена выставлена':'Цена','оплачено наличными':'Оплачено',
+    'печать':'Печать','готова':'Готов'
+  }[s]||s;
+}
+function getStripe(s){
+  return {
+    'новый':'var(--orange)','принят':'var(--lime)','отказ':'var(--red)',
+    'подготовка модели':'var(--blue)','цена выставлена':'var(--teal)',
+    'оплачено наличными':'var(--lime)','печать':'var(--blue)','готова':'var(--teal)'
+  }[s]||'var(--muted)';
+}
+
+/* ── LOAD ORDERS ── */
+async function loadOrders(){
+  const list=$('ordList');
+  list.innerHTML='<div class="loading">// загрузка...</div>';
+  const uid=tg.initDataUnsafe?.user?.id;
+  try{
+    const r=await fetch(`${API}/webapp_orders`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:uid})});
+    const d=await r.json();
+    if(d.orders&&d.orders.length){
+      list.innerHTML='';
+      d.orders.forEach((o,i)=>{
+        const div=document.createElement('div');
+        div.className='ord-card up';div.style.animationDelay=(i*.05)+'s';
+        div.onclick=()=>showDetail(o);
+        const total=o.total_price||0;
+        div.innerHTML=`
+          <div class="ord-stripe" style="background:${getStripe(o.status)}"></div>
+          <div class="ord-head">
+            <span class="ord-id">Заказ #${o.id}</span>
+            <span class="pill ${getPill(o.status)}">${getLabel(o.status)}</span>
+          </div>
+          <div class="ord-info">
+            <div class="ord-row">📦 <strong>${o.model_name.length>26?o.model_name.substring(0,26)+'…':o.model_name}</strong></div>
+            <div class="ord-row">🔢 <strong>${o.quantity} шт.</strong></div>
+            ${total>0?`<div class="ord-row">💰 <strong>${total.toLocaleString()} руб.</strong></div>`:''}
+            <div class="ord-row">📅 <strong>${dt(o.created_at)}</strong></div>
+          </div>`;
+        list.appendChild(div);
+      });
+    }else{
+      list.innerHTML='<div class="empty"><div class="empty-ico">📭</div><div class="empty-txt">Заказов пока нет.<br>Оформи первый!</div></div>';
+    }
+  }catch(e){list.innerHTML='<div class="loading">// ошибка загрузки</div>';}
+}
+function showDetail(o){
+  const total=o.total_price||0;
+  $('detNum').textContent='#'+o.id;
+  $('detBody').innerHTML=`
+    <div class="det-card up">
+      <div class="det-row"><span class="det-lbl">СТАТУС</span><span class="det-val"><span class="pill ${getPill(o.status)}">${getLabel(o.status)}</span></span></div>
+      <div class="det-row"><span class="det-lbl">МОДЕЛЬ</span><span class="det-val">${o.model_name}</span></div>
+      <div class="det-row"><span class="det-lbl">КОЛ-ВО</span><span class="det-val">${o.quantity} шт.</span></div>
+      ${total>0?`<div class="det-row"><span class="det-lbl">СУММА</span><span class="det-val" style="color:var(--lime)">${total.toLocaleString()} руб.</span></div>`:''}
+      <div class="det-row"><span class="det-lbl">ДАТА</span><span class="det-val">${dt(o.created_at)}</span></div>
+    </div>`;
+  go('sDet');
+}
+
+/* ── SETTINGS ── */
+function openSettings(){
+  $('sName').value=profile.name||'';
+  $('sPhone').value=profile.phone||'';
+  setupPhone($('sPhone'));
+  applyTheme(profile.theme||'auto');
+  renderAva();
+}
+$('sSave').onclick=()=>{
+  const n=$('sName').value.trim(),p=$('sPhone').value.trim();
+  const note=$('sNote');
+  if(!n||p.length<8){note.textContent='❌ Заполни поля';note.className='notice err';setTimeout(()=>note.className='notice',3e3);return;}
+  profile.name=n;profile.phone=p;save();refreshCard();
+  const uid=tg.initDataUnsafe?.user?.id;
+  fetch(`${API}/save_profile`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:uid,name:n,phone:p})}).catch(()=>{});
+  note.textContent='✅ Сохранено!';note.className='notice ok';
+  setTimeout(()=>{note.className='notice';go('sMain');},1500);
+};
+
+/* ── AVATAR ── */
+$('avaBig').onclick=()=>$('avaPhoto').click();
+$('avaPhoto').onclick=()=>{
+  const inp=document.createElement('input');inp.type='file';inp.accept='image/*';
+  inp.onchange=e=>{if(e.target.files[0])openCrop(e.target.files[0]);};inp.click();
+};
+$('avaEmoji').onclick=()=>{$('mEmoji').classList.remove('hidden');$('emojiInp').value='';};
+$('avaRm').onclick=()=>{profile.emoji='👤';profile.avatarUrl=null;renderAva();save();};
+
+$('emojiCancel').onclick=()=>$('mEmoji').classList.add('hidden');
+$('emojiOk').onclick=()=>{
+  const e=$('emojiInp').value.trim();
+  if(e){profile.emoji=e;profile.avatarUrl=null;renderAva();save();}
+  $('mEmoji').classList.add('hidden');
+};
+$('mEmoji').onclick=ev=>{if(ev.target===$('mEmoji'))$('mEmoji').classList.add('hidden');};
+
+function openCrop(file){
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const img=$('cropImg');img.src=ev.target.result;
+    $('mCrop').classList.remove('hidden');
+    if(cropper)cropper.destroy();
+    setTimeout(()=>{cropper=new Cropper(img,{aspectRatio:1,viewMode:1,dragMode:'move',autoCropArea:1,guides:false,background:false});},100);
+  };
+  reader.readAsDataURL(file);
+}
+$('cropCancel').onclick=()=>{$('mCrop').classList.add('hidden');if(cropper){cropper.destroy();cropper=null;}};
+$('cropOk').onclick=async()=>{
+  if(!cropper)return;
+  const canvas=cropper.getCroppedCanvas({width:300,height:300});
+  const imgData=canvas.toDataURL('image/jpeg',.88);
+  const uid=tg.initDataUnsafe?.user?.id;
+  try{
+    const r=await fetch(`${API}/upload_avatar`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:uid,image_data:imgData})});
+    const d=await r.json();
+    if(d.ok){profile.avatarUrl=d.avatar_url;profile.emoji=null;save();renderAva();}
+    else{alert('Ошибка загрузки аватара');}
+  }catch(e){
+    // Если сервер недоступен — сохраняем локально base64
+    profile.avatarUrl=imgData;save();renderAva();
+  }
+  $('mCrop').classList.add('hidden');cropper.destroy();cropper=null;
+};
+
+/* ── INIT ── */
+load();
+tg.MainButton.setText('Закрыть');
+tg.MainButton.onClick(()=>tg.close());
+</script>
 </body>
 </html>
