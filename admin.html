@@ -306,6 +306,10 @@ body::after{
       <button class="qa-btn qa-b" id="btnPrint">🖨️ Печать</button>
       <button class="qa-btn qa-t" id="btnReady">🎉 Готова</button>
     </div>
+    <div class="qa2" style="margin-bottom:8px;">
+      <button class="qa-btn" id="btnPaid" style="border-color:rgba(0,212,170,.3);color:var(--teal);">✅ Оплачено</button>
+      <button class="qa-btn" id="btnDone" style="border-color:rgba(200,241,53,.6);color:var(--lime);background:rgba(200,241,53,.08);font-weight:900;">🏁 Завершить заказ</button>
+    </div>
 
     <div class="sec-lbl">// Цена за штуку (руб.)</div>
     <div class="price-row">
@@ -322,6 +326,7 @@ body::after{
       <option value="оплачено наличными">✅ Оплачено наличными</option>
       <option value="печать">🖨️ Идёт печать</option>
       <option value="готова">🎉 Готова к выдаче</option>
+      <option value="завершён">🏁 Завершён</option>
       <option value="отказ">🔴 Отказ</option>
     </select>
     <button class="btn" id="btnStat">Применить статус →</button>
@@ -351,9 +356,9 @@ function dt(s){
 }
 
 /* ── BADGES ── */
-function getPill(s){return{'новый':'p-new','принят':'p-ok','отказ':'p-bad','подготовка модели':'p-prep','цена выставлена':'p-price','оплачено наличными':'p-paid','печать':'p-print','готова':'p-ready'}[s]||'p-new';}
-function getLabel(s){return{'новый':'Новый','принят':'Принят','отказ':'Отказ','подготовка модели':'Подготовка','цена выставлена':'Цена','оплачено наличными':'Оплачено','печать':'Печать','готова':'Готова'}[s]||s;}
-function getStripe(s){return{'новый':'var(--orange)','принят':'var(--lime)','отказ':'var(--red)','подготовка модели':'var(--blue)','цена выставлена':'var(--teal)','оплачено наличными':'var(--lime)','печать':'var(--blue)','готова':'var(--teal)'}[s]||'var(--muted)';}
+function getPill(s){return{'новый':'p-new','принят':'p-ok','отказ':'p-bad','подготовка модели':'p-prep','цена выставлена':'p-price','оплачено наличными':'p-paid','печать':'p-print','готова':'p-ready','завершён':'p-ready'}[s]||'p-new';}
+function getLabel(s){return{'новый':'Новый','принят':'Принят','отказ':'Отказ','подготовка модели':'Подготовка','цена выставлена':'Цена','оплачено наличными':'Оплачено','печать':'Печать','готова':'Готова','завершён':'Завершён'}[s]||s;}
+function getStripe(s){return{'новый':'var(--orange)','принят':'var(--lime)','отказ':'var(--red)','подготовка модели':'var(--blue)','цена выставлена':'var(--teal)','оплачено наличными':'var(--lime)','печать':'var(--blue)','готова':'var(--teal)','завершён':'var(--lime)'}[s]||'var(--muted)';}
 
 /* ── ACCESS ── */
 function checkAccess(){
@@ -463,6 +468,13 @@ $('btnReject').onclick=async()=>{if(!cur)return;const ok=await post('/admin_reje
 $('btnPrep').onclick  =async()=>{if(!cur)return;const ok=await post('/admin_status',{order_id:cur.id,status:'подготовка модели'});if(ok){cur.status='подготовка модели';openDetail(cur);}};
 $('btnPrint').onclick =async()=>{if(!cur)return;const ok=await post('/admin_status',{order_id:cur.id,status:'печать'});if(ok){cur.status='печать';openDetail(cur);}};
 $('btnReady').onclick =async()=>{if(!cur)return;const ok=await post('/admin_status',{order_id:cur.id,status:'готова'});if(ok){cur.status='готова';openDetail(cur);}};
+$('btnPaid').onclick  =async()=>{if(!cur)return;const ok=await post('/admin_status',{order_id:cur.id,status:'оплачено наличными'});if(ok){cur.status='оплачено наличными';openDetail(cur);}};
+$('btnDone').onclick  =async()=>{
+  if(!cur)return;
+  if(!confirm('Завершить заказ? Клиент получит уведомление.'))return;
+  const ok=await post('/admin_status',{order_id:cur.id,status:'завершён'});
+  if(ok){cur.status='завершён';openDetail(cur);}
+};
 
 $('btnPrice').onclick=async()=>{
   if(!cur)return;
