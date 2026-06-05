@@ -227,8 +227,33 @@ body::after{
 .btn:active{transform:scale(.97);opacity:.9;}
 .btn:disabled{opacity:.4;}
 
-/* NOTICE */
-.notice{padding:11px 14px;border-radius:var(--r);font-size:11px;text-align:center;margin-bottom:12px;display:none;}
+/* FILE PREVIEW */
+.file-preview{
+  background:var(--card);border:1px solid var(--edge);
+  border-radius:var(--r);padding:14px;margin-bottom:14px;
+}
+.file-preview-lbl{
+  font-size:9px;font-weight:700;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--lime);margin-bottom:10px;
+}
+.file-preview img{
+  width:100%;border-radius:10px;display:block;
+  max-height:280px;object-fit:contain;
+  background:#000;cursor:pointer;
+}
+.file-preview-link{
+  display:flex;align-items:center;gap:10px;
+  padding:12px;background:var(--ink);border-radius:10px;
+  color:var(--txt);text-decoration:none;
+  font-size:12px;transition:background .15s;
+}
+.file-preview-link:active{background:rgba(200,241,53,.08);}
+.file-preview-link span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.file-ext{
+  background:rgba(200,241,53,.15);color:var(--lime);
+  border-radius:6px;padding:3px 8px;
+  font-size:10px;font-weight:700;letter-spacing:.5px;flex-shrink:0;
+}
 .notice.ok {background:rgba(200,241,53,.1);border:1px solid rgba(200,241,53,.3);color:var(--lime);display:block;}
 .notice.err{background:rgba(255,71,87,.1);border:1px solid rgba(255,71,87,.3);color:var(--red);display:block;}
 
@@ -420,10 +445,33 @@ async function loadOrders(){
           <div class="ord-row">📅 <b>${dt(o.created_at)}</b></div>
           <div class="ord-row">📦 <b>${o.model_name.length>24?o.model_name.substring(0,24)+'…':o.model_name}</b></div>
           <div class="ord-row">🔢 <b>${o.quantity} шт.${total>0?' · '+total.toLocaleString()+' р':''}</b></div>
+          ${o.image_url?`<div class="ord-row">📎 <b>Есть файл</b></div>`:''}
         </div>`;
       list.appendChild(div);
     });
   }catch(e){list.innerHTML='<div class="loading">// ошибка загрузки</div>';}
+}
+
+/* ── FILE PREVIEW ── */
+const IMG_EXT = ['.jpg','.jpeg','.png','.gif','.webp','.bmp'];
+function filePreview(url){
+  const full = API + url;
+  const ext  = url.substring(url.lastIndexOf('.')).toLowerCase();
+  const name = url.substring(url.lastIndexOf('/')+1);
+  const isImg = IMG_EXT.includes(ext);
+  if(isImg){
+    return `<div class="file-preview up">
+      <div class="file-preview-lbl">// Фото / Файл</div>
+      <img src="${full}" alt="файл заказа" onclick="window.open('${full}','_blank')" title="Нажми для открытия">
+    </div>`;
+  }
+  return `<div class="file-preview up">
+    <div class="file-preview-lbl">// Прикреплённый файл</div>
+    <a class="file-preview-link" href="${full}" target="_blank" download>
+      <span>📎 ${name}</span>
+      <span class="file-ext">${ext.replace('.','').toUpperCase()}</span>
+    </a>
+  </div>`;
 }
 
 function openDetail(o){
@@ -442,7 +490,8 @@ function openDetail(o){
       ${total>0?`<div class="det-row"><span class="det-lbl">Итого</span><span class="det-val" style="color:var(--lime)">${total.toLocaleString()} руб.</span></div>`:''}
       <div class="det-row"><span class="det-lbl">Создан</span><span class="det-val">${dt(o.created_at)}</span></div>
       <div class="det-row"><span class="det-lbl">Обновлён</span><span class="det-val">${dt(o.updated_at)}</span></div>
-    </div>`;
+    </div>
+    ${o.image_url ? filePreview(o.image_url) : ''}`;
   $('statSel').value=o.status;
   $('priceInp').value=o.price_per_unit>0?o.price_per_unit:'';
   $('actNote').className='notice';
